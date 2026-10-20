@@ -1,14 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
 import './index.css';
-
-function App() {
-  return (
-    <div style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1>LoveCapsule</h1>
-    </div>
-  );
-}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

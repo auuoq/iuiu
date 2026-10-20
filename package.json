@@ -1,0 +1,12 @@
+{
+  "name": "lovecapsule",
+  "version": "1.0.0",
+  "description": "LoveCapsule - Hộp thư kỷ niệm và không gian tình yêu dành cho 2 bạn",
+  "scripts": {
+    "start": "node server/src/server.js",
+    "server": "npm --prefix server start",
+    "client": "npm --prefix client dev",
+    "test:server": "npm --prefix server test",
+    "build": "npm --prefix client run build"
+  }
+}
