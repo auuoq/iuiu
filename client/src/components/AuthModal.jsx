@@ -8,7 +8,6 @@ export function AuthModal({ onAuthSuccess }) {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [gender, setGender] = useState('female');
-  const [pronoun, setPronoun] = useState('Em');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,7 +39,6 @@ export function AuthModal({ onAuthSuccess }) {
           password,
           display_name: displayName || username,
           gender,
-          pronoun,
           avatar_url: avatarUrl || null
         });
         setToken(res.token);
@@ -170,56 +168,26 @@ export function AuthModal({ onAuthSuccess }) {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', display: 'block', marginBottom: '5px' }}>
-                    Giới tính:
-                  </label>
-                  <select
-                    value={gender}
-                    onChange={(e) => {
-                      setGender(e.target.value);
-                      if (e.target.value === 'male') setPronoun('Anh');
-                      else if (e.target.value === 'female') setPronoun('Em');
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '12px',
-                      border: '1px solid var(--border-subtle)',
-                      background: '#fff',
-                      fontSize: '13.5px'
-                    }}
-                  >
-                    <option value="female">Nữ</option>
-                    <option value="male">Nam</option>
-                    <option value="other">Khác</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', display: 'block', marginBottom: '5px' }}>
-                    Xưng hô trong app:
-                  </label>
-                  <select
-                    value={pronoun}
-                    onChange={(e) => setPronoun(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '12px',
-                      border: '1px solid var(--border-subtle)',
-                      background: '#fff',
-                      fontSize: '13.5px'
-                    }}
-                  >
-                    <option value="Em">Em</option>
-                    <option value="Anh">Anh</option>
-                    <option value="Vợ">Vợ</option>
-                    <option value="Chồng">Chồng</option>
-                    <option value="Bạn">Bạn</option>
-                  </select>
-                </div>
+              <div>
+                <label style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--text-muted)', display: 'block', marginBottom: '5px' }}>
+                  Giới tính (để tự động nhắc ngày 8/3, 20/10 hoặc 19/11):
+                </label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-subtle)',
+                    background: '#fff',
+                    fontSize: '13.5px'
+                  }}
+                >
+                  <option value="female">Nữ</option>
+                  <option value="male">Nam</option>
+                  <option value="other">Khác</option>
+                </select>
               </div>
             </>
           )}
