@@ -1,0 +1,158 @@
+:root {
+  --bg-sand: #f8f4ec;
+  --bg-card: #ffffff;
+  --bg-kraft: #f5ede0;
+  --paper-cream: #fffdf9;
+  
+  --text-ink: #2b2621;
+  --text-muted: #797169;
+  --text-light: #a3998f;
+  
+  --rose-primary: #e06d7e;
+  --rose-hover: #c95264;
+  --rose-light: #fff0f3;
+  --rose-border: #ffd1dc;
+  
+  --wax-red: #b83232;
+  --wax-shadow: #801e1e;
+  
+  --gold-accent: #d4a373;
+  --green-plant: #4a7c59;
+  
+  --border-subtle: #ebdcd0;
+  --shadow-warm: 0 10px 25px rgba(68, 52, 38, 0.07);
+  --shadow-polaroid: 0 6px 18px rgba(43, 38, 33, 0.12);
+  
+  --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-handwriting: 'Caveat', cursive, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--bg-sand);
+  color: var(--text-ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  background-image: 
+    radial-gradient(rgba(224, 109, 126, 0.04) 1px, transparent 1px),
+    radial-gradient(rgba(212, 163, 115, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+}
+
+button, input, textarea, select {
+  font-family: inherit;
+}
+
+/* Scrollbar mộc mạc */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-sand);
+}
+::-webkit-scrollbar-thumb {
+  background: #d8c8ba;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #baa795;
+}
+
+/* Hiệu ứng phong bì & Sáp niêm phong */
+.wax-seal {
+  width: 44px;
+  height: 44px;
+  background: radial-gradient(circle at 35% 35%, #d64545 0%, var(--wax-red) 70%, var(--wax-shadow) 100%);
+  border-radius: 50%;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.35), 0 4px 8px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+.wax-seal:hover {
+  transform: scale(1.08);
+}
+.wax-seal:active {
+  transform: scale(0.95);
+}
+
+/* Thẻ Polaroid kỷ niệm chân thật */
+.polaroid {
+  background: #ffffff;
+  padding: 10px 10px 20px 10px;
+  box-shadow: var(--shadow-polaroid);
+  border-radius: 3px;
+  display: inline-flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+.polaroid:hover {
+  box-shadow: 0 12px 28px rgba(43, 38, 33, 0.18);
+  z-index: 10;
+}
+.polaroid-img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  background-color: #f0eae1;
+  border-radius: 2px;
+}
+.polaroid-caption {
+  font-family: var(--font-handwriting);
+  font-size: 16px;
+  color: #3b332b;
+  text-align: center;
+  margin-top: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Băng dính Washi Tape trang trí */
+.washi-tape {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-3deg);
+  width: 60px;
+  height: 16px;
+  background: rgba(224, 109, 126, 0.65);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  pointer-events: none;
+}
+.washi-tape-mint {
+  background: rgba(138, 196, 179, 0.65);
+}
+.washi-tape-yellow {
+  background: rgba(246, 218, 140, 0.7);
+}
+
+/* Animation mở thư nổ tim */
+@keyframes heartFloat {
+  0% { transform: translateY(0) scale(0.8); opacity: 1; }
+  100% { transform: translateY(-80px) scale(1.4); opacity: 0; }
+}
+.floating-heart {
+  position: fixed;
+  pointer-events: none;
+  animation: heartFloat 1.2s ease-out forwards;
+  z-index: 9999;
+}
