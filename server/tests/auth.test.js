@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { initDb } from '../src/db.js';
-import { registerUser, loginUser, createCouple, joinCouple, getCoupleInfo } from '../src/services/authService.js';
+import { registerUser, loginUser, createCouple, joinCouple, cancelPendingCouple, getCoupleInfo } from '../src/services/authService.js';
 
 describe('Auth & Pairing Service', () => {
   beforeEach(() => {
@@ -74,5 +74,37 @@ describe('Auth & Pairing Service', () => {
 
     // u1 tries to join another code
     expect(() => joinCouple(u1.user.id, 'LOVE-9999')).toThrow(/đã ở trong một mối quan hệ/);
+  });
+
+  it('handles pending couple smoothly when user re-creates or decides to join partner instead', () => {
+    const u1 = registerUser({ username: 'huy1', password: '123', display_name: 'Huy1', gender: 'male', pronoun: 'Anh' });
+    const u2 = registerUser({ username: 'lan1', password: '123', display_name: 'Lan1', gender: 'female', pronoun: 'Em' });
+
+    // u1 creates room
+    const c1 = createCouple(u1.user.id, '2025-10-25');
+    // u1 calls createCouple again (e.g. page reload or form re-submit) - should NOT throw!
+    const c1Again = createCouple(u1.user.id, '2025-10-26');
+    expect(c1Again.couple_code).toBe(c1.couple_code);
+
+    // Meanwhile, u2 also created a room!
+    const c2 = createCouple(u2.user.id, '2025-10-25');
+
+    // u1 decides to join u2's room instead of waiting
+    // Should clean up u1's empty room and join c2
+    const paired = joinCouple(u1.user.id, c2.couple_code);
+    expect(paired.id).toBe(c2.couple.id);
+    expect(paired.user1_id).toBe(u2.user.id);
+    expect(paired.user2_id).toBe(u1.user.id);
+  });
+
+  it('allows canceling a pending couple', () => {
+    const u = registerUser({ username: 'temp', password: '123', display_name: 'Temp', gender: 'other', pronoun: 'Bạn' });
+    createCouple(u.user.id, '2025-10-25');
+    const infoBefore = getCoupleInfo(u.user.id);
+    expect(infoBefore.couple).not.toBeNull();
+
+    cancelPendingCouple(u.user.id);
+    const infoAfter = getCoupleInfo(u.user.id);
+    expect(infoAfter.couple).toBeNull();
   });
 });

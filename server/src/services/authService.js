@@ -72,7 +72,18 @@ export function createCouple(userId, anniversaryDate = null) {
     throw new Error('Người dùng không tồn tại');
   }
   if (user.couple_id) {
-    throw new Error('Bạn đã ở trong một mối quan hệ');
+    const existing = db.prepare('SELECT * FROM couples WHERE id = ?').get(user.couple_id);
+    if (existing) {
+      if (existing.user2_id) {
+        throw new Error('Bạn đã ở trong một mối quan hệ');
+      }
+      // If user already created a room and is waiting for partner, reuse and update anniversaryDate
+      if (anniversaryDate) {
+        db.prepare('UPDATE couples SET anniversary_date = ? WHERE id = ?').run(anniversaryDate, existing.id);
+      }
+      const updated = db.prepare('SELECT * FROM couples WHERE id = ?').get(existing.id);
+      return { couple: updated, couple_code: updated.couple_code };
+    }
   }
 
   let code = generateCoupleCode();
@@ -100,25 +111,52 @@ export function joinCouple(userId, coupleCode) {
   if (!user) {
     throw new Error('Người dùng không tồn tại');
   }
+
   if (user.couple_id) {
-    throw new Error('Bạn đã ở trong một mối quan hệ');
+    const existing = db.prepare('SELECT * FROM couples WHERE id = ?').get(user.couple_id);
+    if (existing && existing.user2_id) {
+      throw new Error('Bạn đã ở trong một mối quan hệ');
+    }
   }
 
-  const couple = db.prepare('SELECT * FROM couples WHERE couple_code = ?').get(coupleCode);
-  if (!couple) {
-    throw new Error('Mã uyên ương không hợp lệ');
+  const targetCouple = db.prepare('SELECT * FROM couples WHERE couple_code = ?').get(coupleCode);
+  if (!targetCouple) {
+    throw new Error('Mã kết đôi không hợp lệ hoặc không tồn tại');
   }
-  if (couple.user2_id) {
+  if (targetCouple.user1_id === userId) {
+    throw new Error('Đây là mã do chính bạn tạo ra. Hãy gửi mã này cho người yêu!');
+  }
+  if (targetCouple.user2_id) {
     throw new Error('Không gian này đã kết đôi đủ 2 người');
   }
-  if (couple.user1_id === userId) {
-    throw new Error('Bạn không thể tự kết đôi với chính mình');
+
+  // If user previously created an empty pending room without a partner, clean it up
+  if (user.couple_id) {
+    const existing = db.prepare('SELECT * FROM couples WHERE id = ?').get(user.couple_id);
+    if (existing && !existing.user2_id && existing.user1_id === userId) {
+      db.prepare('UPDATE users SET couple_id = NULL WHERE id = ?').run(userId);
+      db.prepare('DELETE FROM couples WHERE id = ?').run(existing.id);
+    }
   }
 
-  db.prepare('UPDATE couples SET user2_id = ? WHERE id = ?').run(userId, couple.id);
-  db.prepare('UPDATE users SET couple_id = ? WHERE id = ?').run(couple.id, userId);
+  db.prepare('UPDATE couples SET user2_id = ? WHERE id = ?').run(userId, targetCouple.id);
+  db.prepare('UPDATE users SET couple_id = ? WHERE id = ?').run(targetCouple.id, userId);
 
-  return db.prepare('SELECT * FROM couples WHERE id = ?').get(couple.id);
+  return db.prepare('SELECT * FROM couples WHERE id = ?').get(targetCouple.id);
+}
+
+export function cancelPendingCouple(userId) {
+  const db = getDb();
+  const user = db.prepare('SELECT id, couple_id FROM users WHERE id = ?').get(userId);
+  if (!user || !user.couple_id) {
+    return { success: true };
+  }
+  const existing = db.prepare('SELECT * FROM couples WHERE id = ?').get(user.couple_id);
+  if (existing && !existing.user2_id && existing.user1_id === userId) {
+    db.prepare('UPDATE users SET couple_id = NULL WHERE id = ?').run(userId);
+    db.prepare('DELETE FROM couples WHERE id = ?').run(existing.id);
+  }
+  return { success: true };
 }
 
 export function getCoupleInfo(userId) {

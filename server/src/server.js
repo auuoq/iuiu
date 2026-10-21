@@ -116,6 +116,15 @@ export function createServerApp(dbPath = null) {
     }
   });
 
+  app.post('/api/couple/cancel-pending', authenticateToken, (req, res) => {
+    try {
+      const result = authService.cancelPendingCouple(req.user.id);
+      res.json(result);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
   app.get('/api/couple/info', authenticateToken, (req, res) => {
     try {
       const info = authService.getCoupleInfo(req.user.id);

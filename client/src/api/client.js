@@ -47,6 +47,7 @@ export const api = {
   // Couple
   createCouple: (anniversary_date) => request('/couple/create', { method: 'POST', body: JSON.stringify({ anniversary_date }) }),
   joinCouple: (couple_code) => request('/couple/join', { method: 'POST', body: JSON.stringify({ couple_code }) }),
+  cancelPendingCouple: () => request('/couple/cancel-pending', { method: 'POST' }),
   getCoupleInfo: () => request('/couple/info'),
 
   // Heart

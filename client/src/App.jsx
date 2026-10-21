@@ -104,7 +104,10 @@ export default function App() {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === 'poke') {
+          if (data.type === 'couple_paired') {
+            loadInitialData();
+            spawnHearts(20);
+          } else if (data.type === 'poke') {
             spawnHearts(12);
           } else if (data.type === 'new_letter') {
             api.getLetters().then(setLetters);
@@ -186,7 +189,7 @@ export default function App() {
 
   // Logged in but not paired yet
   if (!couple || !partner) {
-    return <PairingModal user={currentUser} onPairSuccess={loadInitialData} />;
+    return <PairingModal user={currentUser} couple={couple} onPairSuccess={loadInitialData} />;
   }
 
   return (

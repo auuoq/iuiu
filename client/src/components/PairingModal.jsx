@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import { api } from '../api/client.js';
 import { Heart, Sparkles, Copy, Check, Users } from 'lucide-react';
 
-export function PairingModal({ user, onPairSuccess }) {
-  const [mode, setMode] = useState('choose'); // 'choose', 'create', 'join'
-  const [anniversaryDate, setAnniversaryDate] = useState('2025-10-25');
-  const [createdCode, setCreatedCode] = useState('');
+export function PairingModal({ user, couple, onPairSuccess }) {
+  const [mode, setMode] = useState(() => {
+    if (couple && couple.couple_code && !couple.user2_id) {
+      return 'created';
+    }
+    return 'choose';
+  });
+  const [anniversaryDate, setAnniversaryDate] = useState(couple?.anniversary_date || '2025-10-25');
+  const [createdCode, setCreatedCode] = useState(couple?.couple_code || '');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -32,6 +37,20 @@ export function PairingModal({ user, onPairSuccess }) {
     try {
       const res = await api.joinCouple(joinCode.trim().toUpperCase());
       onPairSuccess(res.couple);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelPending = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await api.cancelPendingCouple();
+      setCreatedCode('');
+      setMode('choose');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -212,7 +231,7 @@ export function PairingModal({ user, onPairSuccess }) {
               margin: '16px 0'
             }}>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700' }}>
-                MÃ KẾT ĐÔI
+                MÃ KẾT ĐÔI CỦA BẠN
               </span>
               <div style={{ fontSize: '28px', fontWeight: '800', color: 'var(--rose-primary)', margin: '10px 0', letterSpacing: '2px' }}>
                 {createdCode}
@@ -238,23 +257,32 @@ export function PairingModal({ user, onPairSuccess }) {
               </button>
             </div>
             <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Gửi mã này cho đối phương để cùng kết nối vào không gian chung.
+              Gửi mã này cho đối phương để kết nối. Khi đối phương nhập mã, trang sẽ tự động vào ngay!
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              style={{
-                background: 'var(--rose-primary)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '10px 20px',
-                fontSize: '13.5px',
-                fontWeight: '700',
-                cursor: 'pointer'
-              }}
-            >
-              Kiểm tra kết nối 🔄
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                onClick={() => { setError(''); setMode('join'); }}
+                style={{
+                  background: '#fff',
+                  color: 'var(--rose-primary)',
+                  border: '1px solid var(--rose-primary)',
+                  borderRadius: '12px',
+                  padding: '9px 16px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Nhập mã do người yêu gửi thay vì dùng mã này
+              </button>
+              <button
+                onClick={handleCancelPending}
+                disabled={loading}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12.5px', marginTop: '4px' }}
+              >
+                Hủy mã này
+              </button>
+            </div>
           </div>
         )}
 
@@ -301,7 +329,7 @@ export function PairingModal({ user, onPairSuccess }) {
             </button>
             <button
               type="button"
-              onClick={() => setMode('choose')}
+              onClick={() => { setError(''); setMode(createdCode ? 'created' : 'choose'); }}
               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', marginTop: '14px', cursor: 'pointer', fontSize: '13px' }}
             >
               Quay lại
