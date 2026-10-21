@@ -373,7 +373,7 @@ export default function App() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Ví dụ: Tặng em thêm tim để đọc thư anh viết nhé!"
+                  placeholder="Nhập lời nhắn gửi kèm..."
                   value={giftMessage}
                   onChange={(e) => setGiftMessage(e.target.value)}
                   style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13.5px' }}

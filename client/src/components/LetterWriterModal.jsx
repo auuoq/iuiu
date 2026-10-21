@@ -180,7 +180,7 @@ export function LetterWriterModal({ partner, onClose, onLetterCreated }) {
             <input
               type="text"
               required
-              placeholder="Ví dụ: Mở khi em cảm thấy áp lực vì công việc..."
+              placeholder="Mở khi cần động viên hoặc nhớ nhau..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               style={{
@@ -229,12 +229,12 @@ export function LetterWriterModal({ partner, onClose, onLetterCreated }) {
           {/* Letter Content */}
           <div>
             <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-              Nội dung tâm tình:
+              Nội dung lá thư:
             </label>
             <textarea
               required
               rows={6}
-              placeholder="Hãy viết những lời ngọt ngào, chân thành nhất gửi đến người ấy..."
+              placeholder="Viết nội dung lá thư tại đây..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               style={{
@@ -255,7 +255,7 @@ export function LetterWriterModal({ partner, onClose, onLetterCreated }) {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-muted)' }}>
-                Đính kèm ảnh kỷ niệm thật (Polaroid):
+                Đính kèm ảnh (Polaroid):
               </label>
               <label style={{
                 cursor: 'pointer',
@@ -330,7 +330,7 @@ export function LetterWriterModal({ partner, onClose, onLetterCreated }) {
 
             <div>
               <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Hẹn giờ mở thư (Tùy chọn):
+                Hẹn giờ mở thư:
               </label>
               <input
                 type="datetime-local"
@@ -396,7 +396,7 @@ export function LetterWriterModal({ partner, onClose, onLetterCreated }) {
                   </label>
                   <input
                     type="text"
-                    placeholder="Ví dụ: Lần đầu mình đi xem phim là phim gì?"
+                    placeholder="Nhập câu hỏi thử thách..."
                     value={quizQuestion}
                     onChange={(e) => setQuizQuestion(e.target.value)}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13.5px' }}

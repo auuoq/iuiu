@@ -112,7 +112,7 @@ export function AuthModal({ onAuthSuccess }) {
             <>
               <div>
                 <label style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--text-muted)', display: 'block', marginBottom: '5px' }}>
-                  Ảnh đại diện thật của bạn:
+                  Ảnh đại diện:
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{
@@ -141,7 +141,7 @@ export function AuthModal({ onAuthSuccess }) {
                     alignItems: 'center',
                     gap: '6px'
                   }}>
-                    <Upload size={14} /> Chọn ảnh thật
+                    <Upload size={14} /> Chọn ảnh
                     <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
                   </label>
                 </div>
@@ -149,12 +149,12 @@ export function AuthModal({ onAuthSuccess }) {
 
               <div>
                 <label style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--text-muted)', display: 'block', marginBottom: '5px' }}>
-                  Biệt danh thân mật của bạn:
+                  Tên gọi:
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ví dụ: Bé Mèo, Anh Gấu, Lan..."
+                  placeholder="Nhập tên gọi của bạn"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   style={{
@@ -170,7 +170,7 @@ export function AuthModal({ onAuthSuccess }) {
 
               <div>
                 <label style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--text-muted)', display: 'block', marginBottom: '5px' }}>
-                  Giới tính (để tự động nhắc ngày 8/3, 20/10 hoặc 19/11):
+                  Giới tính:
                 </label>
                 <select
                   value={gender}
@@ -199,7 +199,7 @@ export function AuthModal({ onAuthSuccess }) {
             <input
               type="text"
               required
-              placeholder="Tên đăng nhập của bạn"
+              placeholder="Nhập tên đăng nhập"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               style={{
@@ -220,7 +220,7 @@ export function AuthModal({ onAuthSuccess }) {
             <input
               type="password"
               required
-              placeholder="Mật khẩu bí mật"
+              placeholder="Nhập mật khẩu"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={{
@@ -251,7 +251,7 @@ export function AuthModal({ onAuthSuccess }) {
               transition: 'background 0.2s'
             }}
           >
-            {loading ? 'Đang xử lý...' : (isLogin ? 'Đăng Nhập' : 'Tạo Tài Khoản & Bắt Đầu 💌')}
+            {loading ? 'Đang xử lý...' : (isLogin ? 'Đăng Nhập' : 'Tạo Tài Khoản')}
           </button>
         </form>
 

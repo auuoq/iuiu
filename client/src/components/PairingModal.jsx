@@ -122,9 +122,9 @@ export function PairingModal({ user, onPairSuccess }) {
             >
               <div style={{ fontSize: '26px' }}>✨</div>
               <div>
-                <div style={{ fontWeight: '700', fontSize: '15px' }}>Tôi là người tạo phòng trước</div>
+                <div style={{ fontWeight: '700', fontSize: '15px' }}>Tạo mã kết đôi</div>
                 <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Lấy Mã Uyên Ương gửi cho người yêu
+                  Lấy mã để gửi cho đối phương
                 </div>
               </div>
             </button>
@@ -148,9 +148,9 @@ export function PairingModal({ user, onPairSuccess }) {
             >
               <div style={{ fontSize: '26px' }}>💌</div>
               <div>
-                <div style={{ fontWeight: '700', fontSize: '15px' }}>Người yêu đã gửi mã cho tôi</div>
+                <div style={{ fontWeight: '700', fontSize: '15px' }}>Đã có mã kết đôi</div>
                 <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Nhập mã để tham gia ngay
+                  Nhập mã để kết nối ngay
                 </div>
               </div>
             </button>
@@ -160,7 +160,7 @@ export function PairingModal({ user, onPairSuccess }) {
         {mode === 'create' && (
           <div>
             <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', display: 'block', textAlign: 'left', marginBottom: '6px' }}>
-              Ngày hai bạn bắt đầu yêu nhau:
+              Ngày kỷ niệm:
             </label>
             <input
               type="date"
@@ -191,7 +191,7 @@ export function PairingModal({ user, onPairSuccess }) {
                 cursor: 'pointer'
               }}
             >
-              {loading ? 'Đang tạo...' : 'Tạo Mã Uyên Ương'}
+              {loading ? 'Đang tạo...' : 'Tạo mã kết đôi'}
             </button>
             <button
               onClick={() => setMode('choose')}
@@ -212,7 +212,7 @@ export function PairingModal({ user, onPairSuccess }) {
               margin: '16px 0'
             }}>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700' }}>
-                MÃ UYÊN ƯƠNG CỦA HAI BẠN
+                MÃ KẾT ĐÔI
               </span>
               <div style={{ fontSize: '28px', fontWeight: '800', color: 'var(--rose-primary)', margin: '10px 0', letterSpacing: '2px' }}>
                 {createdCode}
@@ -234,11 +234,11 @@ export function PairingModal({ user, onPairSuccess }) {
                 }}
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
-                {copied ? 'Đã sao chép!' : 'Sao chép mã gửi cho người yêu'}
+                {copied ? 'Đã sao chép!' : 'Sao chép mã'}
               </button>
             </div>
             <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Hãy gửi mã này cho người yêu của bạn để nhập vào máy của họ. Sau khi người yêu nhập mã, trang sẽ tự động kết nối!
+              Gửi mã này cho đối phương để cùng kết nối vào không gian chung.
             </p>
             <button
               onClick={() => window.location.reload()}
@@ -253,7 +253,7 @@ export function PairingModal({ user, onPairSuccess }) {
                 cursor: 'pointer'
               }}
             >
-              Kiểm tra xem người yêu đã vào chưa 🔄
+              Kiểm tra kết nối 🔄
             </button>
           </div>
         )}
@@ -261,12 +261,12 @@ export function PairingModal({ user, onPairSuccess }) {
         {mode === 'join' && (
           <form onSubmit={handleJoinCouple}>
             <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', display: 'block', textAlign: 'left', marginBottom: '6px' }}>
-              Nhập Mã Uyên Ương do người yêu gửi:
+              Nhập mã kết đôi:
             </label>
             <input
               type="text"
               required
-              placeholder="Ví dụ: LOVE-7788"
+              placeholder="LOVE-XXXX"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               style={{
@@ -297,7 +297,7 @@ export function PairingModal({ user, onPairSuccess }) {
                 cursor: 'pointer'
               }}
             >
-              {loading ? 'Đang kết nối...' : 'Xác Nhận Kết Đôi 💖'}
+              {loading ? 'Đang kết nối...' : 'Xác Nhận Kết Đôi'}
             </button>
             <button
               type="button"
