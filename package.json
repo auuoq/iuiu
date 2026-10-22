@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "description": "LoveCapsule - Hộp thư kỷ niệm và không gian tình yêu dành cho 2 bạn",
   "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,magenta\" \"npm run server\" \"npm run client\"",
     "start": "node server/src/server.js",
-    "server": "npm --prefix server start",
-    "client": "npm --prefix client dev",
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "test": "npm --prefix server test",
     "test:server": "npm --prefix server test",
     "build": "npm --prefix client run build"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
   }
 }
