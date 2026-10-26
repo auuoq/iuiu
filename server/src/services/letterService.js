@@ -13,6 +13,8 @@ export function createLetter({
   photos = [],
   stickers = [],
   bgm_track = null,
+  wax_seal = { color: 'red', emblem: 'heart' },
+  scent_tag = 'rose',
   open_heart_cost = 5,
   time_lock_at = null,
   status = 'sent',
@@ -24,9 +26,9 @@ export function createLetter({
   const stmt = db.prepare(`
     INSERT INTO letters (
       couple_id, sender_id, receiver_id, title, mood_tag, content,
-      paper_style, photos, stickers, bgm_track, open_heart_cost,
-      time_lock_at, status, milestone_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      paper_style, photos, stickers, bgm_track, wax_seal, scent_tag,
+      open_heart_cost, time_lock_at, status, milestone_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const res = stmt.run(
@@ -40,6 +42,8 @@ export function createLetter({
     JSON.stringify(photos),
     JSON.stringify(stickers),
     bgm_track,
+    typeof wax_seal === 'object' ? JSON.stringify(wax_seal) : (wax_seal || '{"color":"red","emblem":"heart"}'),
+    scent_tag || 'rose',
     open_heart_cost,
     time_lock_at,
     status || 'sent',
@@ -98,6 +102,8 @@ export function updateLetter(letterId, userId, data) {
   const photos = data.photos !== undefined ? data.photos : existingPhotos;
   const stickers = data.stickers !== undefined ? data.stickers : existingStickers;
   const bgm_track = data.bgm_track !== undefined ? data.bgm_track : letter.bgm_track;
+  const wax_seal = data.wax_seal !== undefined ? (typeof data.wax_seal === 'object' ? JSON.stringify(data.wax_seal) : data.wax_seal) : letter.wax_seal;
+  const scent_tag = data.scent_tag !== undefined ? data.scent_tag : letter.scent_tag;
   const open_heart_cost = data.open_heart_cost !== undefined ? data.open_heart_cost : letter.open_heart_cost;
   const time_lock_at = data.time_lock_at !== undefined ? data.time_lock_at : letter.time_lock_at;
   const status = data.status !== undefined ? data.status : (letter.status || 'sent');
@@ -105,8 +111,8 @@ export function updateLetter(letterId, userId, data) {
   db.prepare(`
     UPDATE letters
     SET title = ?, mood_tag = ?, content = ?, paper_style = ?,
-        photos = ?, stickers = ?, bgm_track = ?, open_heart_cost = ?,
-        time_lock_at = ?, status = ?
+        photos = ?, stickers = ?, bgm_track = ?, wax_seal = ?, scent_tag = ?,
+        open_heart_cost = ?, time_lock_at = ?, status = ?
     WHERE id = ?
   `).run(
     title,
@@ -116,6 +122,8 @@ export function updateLetter(letterId, userId, data) {
     JSON.stringify(photos),
     JSON.stringify(stickers),
     bgm_track,
+    wax_seal,
+    scent_tag,
     open_heart_cost,
     time_lock_at,
     status,
@@ -224,11 +232,13 @@ export function getLettersForCouple(coupleId, currentUserId) {
 
       // Only include content if opened or if viewer is the sender
       if (isOpened || isSender) {
-        const full = db.prepare('SELECT content, photos, stickers, bgm_track FROM letters WHERE id = ?').get(r.id);
+        const full = db.prepare('SELECT content, photos, stickers, bgm_track, wax_seal, scent_tag FROM letters WHERE id = ?').get(r.id);
         item.content = full.content;
         try { item.photos = JSON.parse(full.photos); } catch (e) { item.photos = []; }
         try { item.stickers = JSON.parse(full.stickers); } catch (e) { item.stickers = []; }
+        try { item.wax_seal = JSON.parse(full.wax_seal); } catch (e) { item.wax_seal = { color: 'red', emblem: 'heart' }; }
         item.bgm_track = full.bgm_track;
+        item.scent_tag = full.scent_tag || 'rose';
       }
 
       return item;
@@ -261,6 +271,7 @@ export function getLetterDetail(letterId, currentUserId) {
 
   try { letter.photos = JSON.parse(letter.photos); } catch (e) { letter.photos = []; }
   try { letter.stickers = JSON.parse(letter.stickers); } catch (e) { letter.stickers = []; }
+  try { letter.wax_seal = JSON.parse(letter.wax_seal); } catch (e) { letter.wax_seal = { color: 'red', emblem: 'heart' }; }
 
   const quiz = db.prepare('SELECT * FROM letter_quizzes WHERE letter_id = ?').get(letterId);
   if (quiz) {

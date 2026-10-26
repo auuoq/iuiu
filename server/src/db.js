@@ -96,6 +96,12 @@ export function initDb(dbPath = null) {
     if (!cols.some(c => c.name === 'status')) {
       db.exec("ALTER TABLE letters ADD COLUMN status TEXT DEFAULT 'sent'");
     }
+    if (!cols.some(c => c.name === 'wax_seal')) {
+      db.exec("ALTER TABLE letters ADD COLUMN wax_seal TEXT DEFAULT '{\"color\":\"red\",\"emblem\":\"heart\"}'");
+    }
+    if (!cols.some(c => c.name === 'scent_tag')) {
+      db.exec("ALTER TABLE letters ADD COLUMN scent_tag TEXT DEFAULT 'rose'");
+    }
   } catch (e) {}
 
   // 6. letter_quizzes

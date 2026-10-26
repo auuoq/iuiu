@@ -1,7 +1,41 @@
 import React, { useState, useRef } from 'react';
 import { api } from '../api/client.js';
-import { X, Image, Sparkles, HelpCircle, Calendar, Heart, Upload, Archive, Send, Eye, Edit3, Type, Palette, Smile } from 'lucide-react';
+import {
+  X, Image, Sparkles, HelpCircle, Calendar, Heart, Upload, Archive, Send,
+  Eye, Edit3, Type, Palette, Smile, Music, Play, Pause, Volume2, Move, ZoomIn, ZoomOut, RotateCw
+} from 'lucide-react';
 import { DEFAULT_STICKERS } from './StickerDrawer.jsx';
+import { ROMANTIC_PLAYLIST } from './AudioPlayer.jsx';
+
+export const PAPER_THEMES = [
+  { id: 'kraft', name: 'Giấy Da Cổ Điển 📜', className: 'paper-kraft-vintage' },
+  { id: 'pressed_flowers', name: 'Cánh Hoa Hồng Ép 🌸', className: 'paper-pressed-flowers' },
+  { id: 'caro_ribbon', name: 'Kẻ Ô Ruy Băng 🎀', className: 'paper-caro-ribbon' },
+  { id: 'starry', name: 'Bầu Trời Sao ✨', className: 'paper-starry-night' },
+  { id: 'coffee', name: 'Cà Phê & Sách Ấm ☕', className: 'paper-warm-coffee' }
+];
+
+export const WAX_SEAL_COLORS = [
+  { id: 'red', name: 'Đỏ Ruby', className: 'wax-seal-red' },
+  { id: 'gold', name: 'Vàng Gold', className: 'wax-seal-gold' },
+  { id: 'pink', name: 'Hồng Pastel', className: 'wax-seal-pink' },
+  { id: 'purple', name: 'Tím Rượu', className: 'wax-seal-purple' }
+];
+
+export const WAX_EMBLEMS = [
+  { id: 'heart', icon: '❤️', label: 'Trái tim' },
+  { id: 'rose', icon: '🌹', label: 'Hoa hồng' },
+  { id: 'butterfly', icon: '🦋', label: 'Cánh bướm' },
+  { id: 'lock', icon: '🔒', label: 'Ổ khóa' }
+];
+
+export const SCENT_TAGS = [
+  { id: 'rose', label: 'Hương hoa hồng sớm 🌹' },
+  { id: 'coffee', label: 'Mùi cà phê ấm áp ☕' },
+  { id: 'vanilla', label: 'Hương vani ngọt ngào 🍦' },
+  { id: 'rain', label: 'Hương mưa đêm êm dịu 🌧️' },
+  { id: 'jasmine', label: 'Hương hoa nhài thơm 🌼' }
+];
 
 export function LetterWriterModal({ partner, letterToEdit = null, existingCategories = [], onClose, onLetterSaved }) {
   const isEditing = Boolean(letterToEdit);
@@ -14,6 +48,17 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
   const [fontFamily, setFontFamily] = useState(letterToEdit?.font_family || 'var(--font-handwriting)');
   const [textColor, setTextColor] = useState(letterToEdit?.text_color || '#2b2621');
 
+  // Wax seal & Scent
+  const [waxColor, setWaxColor] = useState(letterToEdit?.wax_seal?.color || 'red');
+  const [waxEmblem, setWaxEmblem] = useState(letterToEdit?.wax_seal?.emblem || 'heart');
+  const [scentTag, setScentTag] = useState(letterToEdit?.scent_tag || 'rose');
+
+  // Background Music for Letter
+  const [bgmTrack, setBgmTrack] = useState(letterToEdit?.bgm_track || ROMANTIC_PLAYLIST[0].url);
+  const [isPreviewAudioPlaying, setIsPreviewAudioPlaying] = useState(false);
+  const previewAudioRef = useRef(null);
+
+  // Photos & Decorative draggable stickers on letter
   const [photos, setPhotos] = useState(() => {
     if (letterToEdit?.photos) {
       return letterToEdit.photos.map(p => typeof p === 'string' ? { url: p, caption: 'Kỷ niệm của hai đứa 📸' } : p);
@@ -25,7 +70,10 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
     if (letterToEdit?.stickers) {
       return letterToEdit.stickers;
     }
-    return [];
+    return [
+      { id: 'stk-1', url: DEFAULT_STICKERS[0].url, x: 80, y: 15, scale: 1, rotation: 6 },
+      { id: 'stk-2', url: DEFAULT_STICKERS[1].url, x: 12, y: 78, scale: 1, rotation: -8 }
+    ];
   });
 
   const [openHeartCost, setOpenHeartCost] = useState(letterToEdit?.open_heart_cost ?? 5);
@@ -41,7 +89,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
   
   // Quiz states
   const [hasQuiz, setHasQuiz] = useState(Boolean(letterToEdit?.quiz));
-  const [quizType, setQuizType] = useState(letterToEdit?.quiz?.quiz_type || 'choice'); // 'choice' | 'text'
+  const [quizType, setQuizType] = useState(letterToEdit?.quiz?.quiz_type || 'choice');
   const [quizQuestion, setQuizQuestion] = useState(letterToEdit?.quiz?.question || '');
   const [quizOptions, setQuizOptions] = useState(() => {
     if (letterToEdit?.quiz?.options && letterToEdit.quiz.options.length > 0) {
@@ -61,6 +109,23 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
   const allSuggestions = Array.from(new Set([...existingCategories, ...defaultSuggestions])).filter(Boolean);
 
   const quickStickers = ['❤️', '💌', '🧸', '🌸', '☕', '🌟', '💍', '💋', '🎀', '✨', '🌿', '🍓', '🍫', '🥂', '🕊️'];
+
+  // Handle BGM Play/Pause in Preview
+  const togglePreviewBgm = () => {
+    if (!previewAudioRef.current) {
+      previewAudioRef.current = new Audio(bgmTrack);
+      previewAudioRef.current.loop = true;
+      previewAudioRef.current.volume = 0.45;
+    }
+    const audio = previewAudioRef.current;
+    if (isPreviewAudioPlaying) {
+      audio.pause();
+      setIsPreviewAudioPlaying(false);
+    } else {
+      audio.src = bgmTrack;
+      audio.play().then(() => setIsPreviewAudioPlaying(true)).catch(e => console.warn(e));
+    }
+  };
 
   const handleInsertEmoji = (emoji) => {
     const textarea = contentTextareaRef.current;
@@ -82,8 +147,9 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
     const newStk = {
       id: `letter-stk-${Date.now()}`,
       url: stickerUrl,
-      x: Math.floor(Math.random() * 60 + 20),
-      y: Math.floor(Math.random() * 40 + 20),
+      x: Math.floor(Math.random() * 65 + 15),
+      y: Math.floor(Math.random() * 60 + 20),
+      scale: 1,
       rotation: Math.floor(Math.random() * 20 - 10)
     };
     setLetterStickers([...letterStickers, newStk]);
@@ -91,6 +157,19 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
 
   const handleRemoveDecorativeSticker = (stkId) => {
     setLetterStickers(letterStickers.filter(s => s.id !== stkId));
+  };
+
+  const handleAdjustSticker = (stkId, prop, delta) => {
+    setLetterStickers(letterStickers.map(s => {
+      if (s.id !== stkId) return s;
+      if (prop === 'scale') {
+        return { ...s, scale: Math.min(1.8, Math.max(0.6, (s.scale || 1) + delta)) };
+      }
+      if (prop === 'rotation') {
+        return { ...s, rotation: ((s.rotation || 0) + delta) % 360 };
+      }
+      return s;
+    }));
   };
 
   const handlePhotoUpload = async (e) => {
@@ -106,16 +185,6 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
 
   const handleRemovePhoto = (index) => {
     setPhotos(photos.filter((_, i) => i !== index));
-  };
-
-  const handleEditPhotoCaption = (index) => {
-    const cur = photos[index];
-    const newCap = prompt('Nhập chú thích cho ảnh Polaroid:', cur.caption || '');
-    if (newCap !== null) {
-      const copy = [...photos];
-      copy[index] = { ...copy[index], caption: newCap };
-      setPhotos(copy);
-    }
   };
 
   const handleSave = async (status = 'sent') => {
@@ -136,6 +205,10 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
       }
     }
 
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+    }
+
     setLoading(true);
     setError('');
 
@@ -148,6 +221,9 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
         paper_style: paperStyle,
         photos: photos.map(p => typeof p === 'string' ? p : p.url),
         stickers: letterStickers,
+        bgm_track: bgmTrack || null,
+        wax_seal: { color: waxColor, emblem: waxEmblem },
+        scent_tag: scentTag || 'rose',
         font_family: fontFamily,
         text_color: textColor,
         open_heart_cost: Number(openHeartCost),
@@ -182,21 +258,16 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
     }
   };
 
-  const getPaperBg = () => {
-    switch (paperStyle) {
-      case 'kraft': return '#f7efe2';
-      case 'pink_pastel': return '#fff5f7';
-      case 'caro_grid': return '#ffffff';
-      default: return '#fbf8f2';
-    }
-  };
+  const currentTheme = PAPER_THEMES.find(t => t.id === paperStyle) || PAPER_THEMES[0];
+  const currentWaxEmblemIcon = WAX_EMBLEMS.find(e => e.id === waxEmblem)?.icon || '❤️';
+  const currentScent = SCENT_TAGS.find(s => s.id === scentTag)?.label || SCENT_TAGS[0].label;
 
   return (
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(43, 38, 33, 0.6)',
-      backdropFilter: 'blur(6px)',
+      background: 'rgba(43, 38, 33, 0.65)',
+      backdropFilter: 'blur(7px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -208,7 +279,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
         background: 'var(--paper-cream)',
         border: '1px solid var(--border-subtle)',
         borderRadius: '24px',
-        maxWidth: '720px',
+        maxWidth: '750px',
         width: '100%',
         maxHeight: '92vh',
         overflowY: 'auto',
@@ -218,7 +289,10 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
       }}>
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={() => {
+            if (previewAudioRef.current) previewAudioRef.current.pause();
+            onClose();
+          }}
           style={{
             position: 'absolute',
             top: '20px',
@@ -232,14 +306,14 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
           <X size={22} />
         </button>
 
-        {/* Header with Title and Mode Switch (Edit vs Preview) */}
+        {/* Header with Mode Switch (Edit vs Preview) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px', paddingRight: '36px' }}>
           <div>
             <h2 style={{ fontSize: '20px', fontWeight: '800' }}>
-              {isEditing ? `Chỉnh Sửa Lá Thư Gửi ${partner.display_name} 📝` : `Xưởng Viết Thư Gửi ${partner.display_name} 💌`}
+              {isEditing ? `Chỉnh Sửa Lá Thư Gửi ${partner.display_name} 📝` : `Xưởng Thư Tình Nghệ Thuật Cho ${partner.display_name} 💌`}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px' }}>
-              Gửi gắm tình cảm ngọt ngào, dán sticker và ngắm nhìn thư trước khi gửi
+              Trang trí giấy thủ công, gắn nhạc du dương và cài hương thơm kỷ niệm
             </p>
           </div>
 
@@ -326,7 +400,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 }}
               />
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Gợi ý nhanh:</span>
+                <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Gợi ý:</span>
                 {allSuggestions.slice(0, 6).map((tag, idx) => (
                   <button
                     type="button"
@@ -372,29 +446,21 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
               />
             </div>
 
-            {/* Paper Style & Font & Color Selector in 1 Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-              {/* Paper Style */}
+            {/* Row: 5 Paper Styles & Font & Ink Color */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              {/* Paper Theme */}
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Giấy viết thư:
+                  Chất liệu giấy nghệ thuật:
                 </label>
                 <select
                   value={paperStyle}
                   onChange={(e) => setPaperStyle(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-subtle)',
-                    background: '#fff',
-                    fontSize: '13px',
-                    fontWeight: '600'
-                  }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '13px', fontWeight: '600' }}
                 >
-                  <option value="kraft">Giấy Kraft Cổ Điển 📜</option>
-                  <option value="pink_pastel">Hồng Pastel Dịu Ngọt 🌸</option>
-                  <option value="caro_grid">Giấy Kẻ Caro Tối Giản 📐</option>
+                  {PAPER_THEMES.map(theme => (
+                    <option key={theme.id} value={theme.id}>{theme.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -406,15 +472,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 <select
                   value={fontFamily}
                   onChange={(e) => setFontFamily(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-subtle)',
-                    background: '#fff',
-                    fontSize: '13px',
-                    fontWeight: '600'
-                  }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '13px', fontWeight: '600' }}
                 >
                   <option value="var(--font-handwriting)">Viết tay mộc mạc (Caveat)</option>
                   <option value="'Dancing Script', cursive">Viết tay uốn lượn (Dancing Script)</option>
@@ -423,23 +481,15 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 </select>
               </div>
 
-              {/* Text Ink Color */}
+              {/* Ink Color */}
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Màu mực viết:
+                  Màu mực:
                 </label>
                 <select
                   value={textColor}
                   onChange={(e) => setTextColor(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-subtle)',
-                    background: '#fff',
-                    fontSize: '13px',
-                    fontWeight: '600'
-                  }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '13px', fontWeight: '600' }}
                 >
                   <option value="#2b2621">Nâu cà phê cổ điển</option>
                   <option value="#111111">Mực đen tuyền</option>
@@ -449,7 +499,100 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
               </div>
             </div>
 
-            {/* Sticker Toolbar for quick inline inserting & decorative sticking */}
+            {/* Row: Wax Seal & Scent & Background Music */}
+            <div style={{
+              background: '#fcf8f2',
+              border: '1px solid #ebd9c8',
+              borderRadius: '16px',
+              padding: '14px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '12px'
+            }}>
+              {/* Wax Seal Customization */}
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--rose-primary)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                  <span>Con Dấu Sáp Niêm Phong:</span>
+                </label>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  {/* Colors */}
+                  {WAX_SEAL_COLORS.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setWaxColor(c.id)}
+                      className={`wax-seal ${c.className}`}
+                      title={c.name}
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        border: waxColor === c.id ? '2px solid #fff' : 'none',
+                        boxShadow: waxColor === c.id ? '0 0 0 2px #000' : 'none',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  ))}
+                  {/* Emblems */}
+                  <select
+                    value={waxEmblem}
+                    onChange={(e) => setWaxEmblem(e.target.value)}
+                    style={{ flex: 1, padding: '5px 8px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '12px', fontWeight: '700' }}
+                  >
+                    {WAX_EMBLEMS.map(e => (
+                      <option key={e.id} value={e.id}>{e.icon} {e.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Scent Tag */}
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-ink)', display: 'block', marginBottom: '4px' }}>
+                  Mùi hương gửi kèm thư:
+                </label>
+                <select
+                  value={scentTag}
+                  onChange={(e) => setScentTag(e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '12px', fontWeight: '600' }}
+                >
+                  {SCENT_TAGS.map(s => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Background Music for Letter */}
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span>Giai điệu khi mở thư 🎵:</span>
+                  <button
+                    type="button"
+                    onClick={togglePreviewBgm}
+                    style={{ background: 'none', border: 'none', color: 'var(--rose-primary)', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px', fontWeight: '700' }}
+                  >
+                    {isPreviewAudioPlaying ? <Pause size={12} /> : <Play size={12} />}
+                    <span>{isPreviewAudioPlaying ? 'Dừng thử' : 'Nghe thử'}</span>
+                  </button>
+                </label>
+                <select
+                  value={bgmTrack}
+                  onChange={(e) => {
+                    setBgmTrack(e.target.value);
+                    if (previewAudioRef.current) {
+                      previewAudioRef.current.pause();
+                      setIsPreviewAudioPlaying(false);
+                    }
+                  }}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '12px', fontWeight: '600' }}
+                >
+                  {ROMANTIC_PLAYLIST.map(track => (
+                    <option key={track.id} value={track.url}>{track.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Quick Stickers and Decorative Stickers */}
             <div style={{
               background: '#faf6ee',
               border: '1px solid #ebd9c8',
@@ -503,40 +646,9 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                   cursor: 'pointer'
                 }}
               >
-                + Dán Sticker Lên Giấy 🧸
+                + Dán Lên Giấy Thư 🌸
               </button>
             </div>
-
-            {/* Decorative stickers currently placed */}
-            {letterStickers.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Sticker đã dán trên thư:</span>
-                {letterStickers.map((stk) => (
-                  <div
-                    key={stk.id}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      background: '#fff',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: '12px',
-                      padding: '2px 8px',
-                      fontSize: '11.5px'
-                    }}
-                  >
-                    <img src={stk.url} alt="stk" style={{ width: '18px', height: '18px' }} />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveDecorativeSticker(stk.id)}
-                      style={{ background: 'none', border: 'none', color: '#c94a5a', cursor: 'pointer', fontWeight: '700' }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
 
             {/* Letter Content Textarea */}
             <div>
@@ -550,12 +662,11 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 placeholder="Viết tâm sự, những lời yêu thương, kỷ niệm muốn gửi gắm tại đây..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
+                className={currentTheme.className}
                 style={{
                   width: '100%',
                   padding: '16px',
                   borderRadius: '14px',
-                  border: '1px solid var(--border-subtle)',
-                  background: getPaperBg(),
                   fontFamily: fontFamily,
                   color: textColor,
                   fontSize: '17px',
@@ -594,14 +705,11 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                         <div className="washi-tape" style={{ width: '45px', height: '12px' }} />
                         <img src={typeof p === 'string' ? p : p.url} alt="Polaroid" style={{ width: '100%', height: '95px', objectFit: 'cover' }} />
                         <div
-                          onClick={() => handleEditPhotoCaption(idx)}
-                          title="Nhấp để sửa chú thích ảnh"
                           style={{
                             fontFamily: 'var(--font-handwriting)',
                             fontSize: '13px',
                             textAlign: 'center',
                             marginTop: '6px',
-                            cursor: 'pointer',
                             color: '#3b332b'
                           }}
                         >
@@ -759,7 +867,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                                 cursor: 'pointer'
                               }}
                             >
-                              {correctAnswer === opt && opt.trim() ? '✓ Đáp án đúng' : 'Chọn làm đáp án đúng'}
+                              {correctAnswer === opt && opt.trim() ? '✓ Đúng' : 'Chọn'}
                             </button>
                           </div>
                         ))}
@@ -852,38 +960,58 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
         ) : (
           /* ================= TAB 2: LIVE PREVIEW MODE ================= */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{
-              background: getPaperBg(),
-              border: '1px solid var(--border-subtle)',
-              borderRadius: '20px',
-              padding: '36px',
-              boxShadow: '0 15px 35px rgba(0,0,0,0.08)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
+            <div
+              className={currentTheme.className}
+              style={{
+                borderRadius: '20px',
+                padding: '36px',
+                boxShadow: '0 15px 35px rgba(0,0,0,0.08)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Scent Tag in top corner */}
+              <div style={{
+                position: 'absolute',
+                top: '16px',
+                right: '20px',
+                background: 'rgba(255, 255, 255, 0.85)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '16px',
+                padding: '4px 12px',
+                fontSize: '11px',
+                fontWeight: '700',
+                color: 'var(--rose-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+              }}>
+                <span>🌸</span>
+                <span>{currentScent}</span>
+              </div>
+
               {/* Decorative Stickers in Preview */}
               {letterStickers.map(stk => (
-                <img
+                <div
                   key={stk.id}
-                  src={stk.url}
-                  alt="decorative"
                   style={{
                     position: 'absolute',
                     left: `${stk.x}%`,
                     top: `${stk.y}%`,
-                    width: '38px',
-                    height: '38px',
-                    transform: `rotate(${stk.rotation || 0}deg)`,
+                    transform: `scale(${stk.scale || 1}) rotate(${stk.rotation || 0}deg)`,
                     pointerEvents: 'none',
                     filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.15))'
                   }}
-                />
+                >
+                  <img src={stk.url} alt="sticker" style={{ width: '40px', height: '40px' }} />
+                </div>
               ))}
 
-              {/* Top Wax Seal Stamp Preview */}
+              {/* Top Custom Wax Seal Stamp Preview */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '22px', borderBottom: '1px dashed var(--border-subtle)', paddingBottom: '16px' }}>
-                <div className="wax-seal" style={{ width: '50px', height: '50px', fontSize: '22px' }}>
-                  ❤️
+                <div className={`wax-seal wax-seal-${waxColor}`} style={{ width: '50px', height: '50px', fontSize: '20px' }}>
+                  {currentWaxEmblemIcon}
                 </div>
                 <div>
                   <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--rose-primary)', textTransform: 'uppercase' }}>
@@ -913,7 +1041,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
 
               {/* Polaroid Attachments Preview */}
               {photos.length > 0 && (
-                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px dashed #e4d7cb' }}>
+                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px dashed rgba(0,0,0,0.1)' }}>
                   <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '12px' }}>
                     Ảnh kỷ niệm kèm theo:
                   </div>

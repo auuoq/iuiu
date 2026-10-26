@@ -379,3 +379,72 @@ button, input, textarea, select {
   animation: letterCardSlideOut 0.8s 0.2s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
 }
 
+/* Artistic Stationery Papers */
+.paper-kraft-vintage {
+  background: #f7efe2 !important;
+  background-image: radial-gradient(#dec6ab 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+  border: 1px solid #dfcfbc !important;
+}
+
+.paper-pressed-flowers {
+  background: #fff8f9 !important;
+  background-image: 
+    radial-gradient(rgba(224, 109, 126, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, #fffafc 0%, #fff0f3 100%) !important;
+  border: 1px solid #ffd6e0 !important;
+}
+
+.paper-caro-ribbon {
+  background: #ffffff !important;
+  background-image: 
+    linear-gradient(#f0e6e6 1px, transparent 1px),
+    linear-gradient(90deg, #f0e6e6 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+  border: 1px solid #eed8d8 !important;
+}
+
+.paper-starry-night {
+  background: #f4f0fa !important;
+  background-image: radial-gradient(#d3c6ea 1px, transparent 1px) !important;
+  background-size: 24px 24px !important;
+  border: 1px solid #dcd0f0 !important;
+}
+
+.paper-warm-coffee {
+  background: #f5eedf !important;
+  background-image: radial-gradient(#d8caa8 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+  border: 1px solid #dfd0b6 !important;
+}
+
+/* Custom Wax Seal Colors */
+.wax-seal-red {
+  background: radial-gradient(circle at 35% 35%, #d64545 0%, #b83232 70%, #801e1e 100%) !important;
+}
+.wax-seal-gold {
+  background: radial-gradient(circle at 35% 35%, #ffd166 0%, #c49235 70%, #8a5e12 100%) !important;
+}
+.wax-seal-pink {
+  background: radial-gradient(circle at 35% 35%, #ffa6b9 0%, #e06d7e 70%, #a43848 100%) !important;
+}
+.wax-seal-purple {
+  background: radial-gradient(circle at 35% 35%, #b185db 0%, #7b4b94 70%, #4b2361 100%) !important;
+}
+
+/* Falling Rose Petals Keyframe */
+@keyframes fallPetal {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+  15% { opacity: 0.85; }
+  100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
+}
+
+.falling-petal {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1050;
+  animation: fallPetal linear infinite;
+  user-select: none;
+}
+
+
