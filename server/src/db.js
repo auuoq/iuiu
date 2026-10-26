@@ -102,6 +102,12 @@ export function initDb(dbPath = null) {
     if (!cols.some(c => c.name === 'scent_tag')) {
       db.exec("ALTER TABLE letters ADD COLUMN scent_tag TEXT DEFAULT 'rose'");
     }
+    if (!cols.some(c => c.name === 'bg_image')) {
+      db.exec("ALTER TABLE letters ADD COLUMN bg_image TEXT DEFAULT NULL");
+    }
+    if (!cols.some(c => c.name === 'envelope_config')) {
+      db.exec("ALTER TABLE letters ADD COLUMN envelope_config TEXT DEFAULT '{\"color\":\"dusty_rose\",\"stamp_design\":\"rose\",\"stamp_image\":null}'");
+    }
   } catch (e) {}
 
   // 6. letter_quizzes

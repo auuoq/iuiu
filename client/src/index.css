@@ -286,6 +286,70 @@ button, input, textarea, select {
 }
 
 /* Real Craft Heart-Clasp Envelope (Matching User's Photo Reference) */
+/* Envelope Color Themes */
+.env-dusty_rose {
+  --env-pocket-bg: linear-gradient(145deg, #b87a8b 0%, #aa6d7f 100%);
+  --env-pocket-border: #945869;
+  --env-shadow: rgba(70, 35, 45, 0.35);
+  --env-flap-bg: linear-gradient(180deg, #c48797 0%, #b27385 100%);
+  --env-fold-bg: linear-gradient(180deg, #bb7e8f 0%, #a46779 100%);
+  --env-clasp-bg: #995064;
+}
+
+.env-kraft {
+  --env-pocket-bg: linear-gradient(145deg, #c79e6e 0%, #b3895a 100%);
+  --env-pocket-border: #9e7547;
+  --env-shadow: rgba(82, 57, 30, 0.35);
+  --env-flap-bg: linear-gradient(180deg, #d4ab7b 0%, #bf9464 100%);
+  --env-fold-bg: linear-gradient(180deg, #c99f70 0%, #b18758 100%);
+  --env-clasp-bg: #8c6032;
+}
+
+.env-navy {
+  --env-pocket-bg: linear-gradient(145deg, #2d3e52 0%, #1c2a3b 100%);
+  --env-pocket-border: #152230;
+  --env-shadow: rgba(15, 25, 38, 0.45);
+  --env-flap-bg: linear-gradient(180deg, #374b63 0%, #29394c 100%);
+  --env-fold-bg: linear-gradient(180deg, #2e4055 0%, #1e2d3e 100%);
+  --env-clasp-bg: #e06d7e;
+}
+
+.env-lavender {
+  --env-pocket-bg: linear-gradient(145deg, #9983a8 0%, #836e94 100%);
+  --env-pocket-border: #725b82;
+  --env-shadow: rgba(55, 38, 70, 0.35);
+  --env-flap-bg: linear-gradient(180deg, #a791b8 0%, #8f79a0 100%);
+  --env-fold-bg: linear-gradient(180deg, #9d87ad 0%, #826c92 100%);
+  --env-clasp-bg: #6f4c82;
+}
+
+.env-forest {
+  --env-pocket-bg: linear-gradient(145deg, #44634f 0%, #344f3e 100%);
+  --env-pocket-border: #283e30;
+  --env-shadow: rgba(28, 45, 34, 0.38);
+  --env-flap-bg: linear-gradient(180deg, #51755e 0%, #3d5c48 100%);
+  --env-fold-bg: linear-gradient(180deg, #476853 0%, #35503f 100%);
+  --env-clasp-bg: #2d4c38;
+}
+
+.env-ivory {
+  --env-pocket-bg: linear-gradient(145deg, #ded4c1 0%, #ccc1ab 100%);
+  --env-pocket-border: #b5a992;
+  --env-shadow: rgba(70, 60, 48, 0.25);
+  --env-flap-bg: linear-gradient(180deg, #ebe2d0 0%, #ded3bf 100%);
+  --env-fold-bg: linear-gradient(180deg, #ded3c0 0%, #c9bda7 100%);
+  --env-clasp-bg: #b86e82;
+}
+
+.env-crimson {
+  --env-pocket-bg: linear-gradient(145deg, #9e2a2b 0%, #7d1f20 100%);
+  --env-pocket-border: #631516;
+  --env-shadow: rgba(70, 15, 16, 0.4);
+  --env-flap-bg: linear-gradient(180deg, #ab3233 0%, #8c2324 100%);
+  --env-fold-bg: linear-gradient(180deg, #9a2829 0%, #781c1d 100%);
+  --env-clasp-bg: #631516;
+}
+
 .craft-envelope-container {
   perspective: 1200px;
   width: 100%;
@@ -298,10 +362,10 @@ button, input, textarea, select {
   position: relative;
   width: 100%;
   min-height: 290px;
-  background: linear-gradient(145deg, #b87a8b 0%, #aa6d7f 100%);
+  background: var(--env-pocket-bg, linear-gradient(145deg, #b87a8b 0%, #aa6d7f 100%));
   border-radius: 18px;
-  box-shadow: 0 25px 50px rgba(70, 35, 45, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.25);
-  border: 1px solid #945869;
+  box-shadow: 0 25px 50px var(--env-shadow, rgba(70, 35, 45, 0.35)), inset 0 2px 4px rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--env-pocket-border, #945869);
   overflow: visible;
   transition: all 0.5s ease;
 }
@@ -313,7 +377,7 @@ button, input, textarea, select {
   right: 0;
   height: 60%;
   clip-path: polygon(0 100%, 50% 25%, 100% 100%);
-  background: linear-gradient(180deg, #bb7e8f 0%, #a46779 100%);
+  background: var(--env-fold-bg, linear-gradient(180deg, #bb7e8f 0%, #a46779 100%));
   border-radius: 0 0 18px 18px;
   box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
   z-index: 6;
@@ -326,7 +390,7 @@ button, input, textarea, select {
   left: 0;
   right: 0;
   height: 62%;
-  background: linear-gradient(180deg, #c48797 0%, #b27385 100%);
+  background: var(--env-flap-bg, linear-gradient(180deg, #c48797 0%, #b27385 100%));
   border-radius: 18px 18px 50% 50% / 18px 18px 85% 85%;
   transform-origin: top center;
   transition: transform 0.85s cubic-bezier(0.4, 0, 0.2, 1), z-index 0.3s;
@@ -351,7 +415,7 @@ button, input, textarea, select {
 .heart-clasp-btn {
   width: 52px;
   height: 52px;
-  background: #a36173;
+  background: var(--env-clasp-bg, #a36173);
   border-radius: 50%;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25), inset 0 2px 3px rgba(255,255,255,0.3);
   cursor: pointer;
@@ -366,7 +430,166 @@ button, input, textarea, select {
 
 .heart-clasp-btn:hover {
   transform: scale(1.18);
-  background: #b86e82;
+  filter: brightness(1.12);
+}
+
+/* Vintage Postage Stamp (Tem Thư) with Perforated Edges */
+.postage-stamp {
+  position: relative;
+  background: #ffffff;
+  padding: 5px 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+  border-radius: 3px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  user-select: none;
+  border: 1.5px dashed #c2b3a3;
+  min-width: 62px;
+  min-height: 74px;
+  background-color: #faf7f2;
+}
+.postage-stamp:hover {
+  transform: scale(1.06) rotate(1deg);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+}
+.postage-stamp-inner {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(190, 160, 140, 0.4);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 2px;
+}
+.postage-stamp-img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+.postage-stamp-icon {
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.postage-stamp-denomination {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--rose-primary);
+  text-transform: uppercase;
+}
+
+/* Postmark Cancel Stamp (Dấu Bưu Điện Đóng Mực) */
+.postmark-cancel-seal {
+  position: absolute;
+  top: -10px;
+  right: -14px;
+  width: 58px;
+  height: 58px;
+  border: 1.5px solid rgba(160, 50, 60, 0.45);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: rgba(160, 50, 60, 0.55);
+  transform: rotate(-18deg);
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px rgba(160, 50, 60, 0.12);
+}
+.postmark-lines {
+  position: absolute;
+  right: -24px;
+  top: 18px;
+  width: 28px;
+  height: 18px;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(160, 50, 60, 0.35) 2px,
+    rgba(160, 50, 60, 0.35) 3.5px
+  );
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+/* Interactive Canvas for Letter Decoration */
+.letter-canvas-surface {
+  position: relative;
+  min-height: 520px;
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  user-select: none;
+  transition: background 0.3s ease;
+}
+
+.canvas-interactive-item {
+  position: absolute;
+  cursor: grab;
+  touch-action: none;
+  transition: box-shadow 0.15s ease;
+  user-select: none;
+}
+.canvas-interactive-item:active {
+  cursor: grabbing;
+}
+.canvas-interactive-item.is-selected {
+  outline: 2px dashed var(--rose-primary);
+  outline-offset: 4px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(224, 109, 126, 0.3);
+  z-index: 50;
+}
+.canvas-item-controls {
+  position: absolute;
+  top: -34px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: #ffffff;
+  padding: 2px 6px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  border: 1px solid var(--border-subtle);
+  z-index: 60;
+  white-space: nowrap;
+}
+.canvas-ctrl-btn {
+  background: none;
+  border: none;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-ink);
+  font-size: 11px;
+}
+.canvas-ctrl-btn:hover {
+  background: var(--rose-light);
+  color: var(--rose-primary);
+}
+.canvas-ctrl-btn.danger:hover {
+  background: #ffebee;
+  color: #c62828;
 }
 
 @keyframes letterCardSlideOut {

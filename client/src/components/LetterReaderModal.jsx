@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar, Heart, BookmarkCheck, Music, Pause, Play, Sparkles } from 'lucide-react';
 import { WAX_EMBLEMS, SCENT_TAGS } from './LetterWriterModal.jsx';
+import { PostageStamp } from './PostageStamp.jsx';
 
 export function LetterReaderModal({ letter, onClose }) {
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const audioRef = useRef(null);
+
+  const envCfg = letter.envelope_config || { color: 'dusty_rose', stamp_design: 'rose', stamp_image: null };
 
   // Theme paper classes
   const getPaperClass = () => {
@@ -104,6 +107,23 @@ export function LetterReaderModal({ letter, onClose }) {
           position: 'relative'
         }}
       >
+        {/* Custom Uploaded Background Image if any */}
+        {letter.bg_image && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              backgroundImage: `url(${letter.bg_image})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: 0.16,
+              pointerEvents: 'none',
+              borderRadius: '24px',
+              zIndex: 0
+            }}
+          />
+        )}
+
         {/* Close Button */}
         <button
           onClick={() => {
@@ -131,7 +151,9 @@ export function LetterReaderModal({ letter, onClose }) {
           justifyContent: 'space-between',
           marginBottom: '20px',
           flexWrap: 'wrap',
-          gap: '8px'
+          gap: '8px',
+          position: 'relative',
+          zIndex: 2
         }}>
           {/* Scent Tag */}
           <div style={{
@@ -187,23 +209,47 @@ export function LetterReaderModal({ letter, onClose }) {
           )}
         </div>
 
-        {/* Wax Stamp Seal at Top Corner */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px', borderBottom: '1px dashed rgba(0,0,0,0.12)', paddingBottom: '16px' }}>
-          <div className={`wax-seal wax-seal-${waxColor}`} style={{ width: '52px', height: '52px', fontSize: '22px' }}>
-            {waxIcon}
+        {/* Wax Stamp Seal & Postage Stamp at Top Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '14px',
+          marginBottom: '24px',
+          borderBottom: '1px dashed rgba(0,0,0,0.12)',
+          paddingBottom: '16px',
+          position: 'relative',
+          zIndex: 2
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div className={`wax-seal wax-seal-${waxColor}`} style={{ width: '52px', height: '52px', fontSize: '22px' }}>
+              {waxIcon}
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--rose-primary)', textTransform: 'uppercase' }}>
+                {letter.mood_tag || 'Lá Thư Tình'}
+              </div>
+              <h2 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-ink)', letterSpacing: '-0.2px', marginTop: '2px' }}>
+                {letter.title}
+              </h2>
+              <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '12px' }}>
+                <span>Từ: <strong>{letter.sender_name}</strong></span>
+                <span>•</span>
+                <span>Ngày gửi: {new Date(letter.created_at).toLocaleDateString('vi-VN')}</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--rose-primary)', textTransform: 'uppercase' }}>
-              {letter.mood_tag || 'Lá Thư Tình'}
-            </div>
-            <h2 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-ink)', letterSpacing: '-0.2px', marginTop: '2px' }}>
-              {letter.title}
-            </h2>
-            <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '12px' }}>
-              <span>Từ: <strong>{letter.sender_name}</strong></span>
-              <span>•</span>
-              <span>Ngày gửi: {new Date(letter.created_at).toLocaleDateString('vi-VN')}</span>
-            </div>
+
+          {/* Postage Stamp on Letter */}
+          <div style={{ flexShrink: 0, transform: 'rotate(3deg)' }}>
+            <PostageStamp
+              design={envCfg.stamp_design || 'rose'}
+              imageUrl={envCfg.stamp_image}
+              cost={letter.open_heart_cost}
+              size="sm"
+              showPostmark={true}
+              postmarkDate={letter.created_at}
+            />
           </div>
         </div>
 

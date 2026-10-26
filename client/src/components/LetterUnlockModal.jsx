@@ -3,6 +3,8 @@ import confetti from 'canvas-confetti';
 import { api } from '../api/client.js';
 import { X, Lock, Clock, Heart, HelpCircle, Check, AlertCircle, Sparkles, HelpCircle as QuizIcon } from 'lucide-react';
 
+import { PostageStamp } from './PostageStamp.jsx';
+
 export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSuccess }) {
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [isOpeningFlap, setIsOpeningFlap] = useState(false);
@@ -11,6 +13,9 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
   const [showHint, setShowHint] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const envCfg = letter.envelope_config || { color: 'dusty_rose', stamp_design: 'rose', stamp_image: null };
+  const envClass = `env-${envCfg.color || 'dusty_rose'}`;
 
   const isTimeLocked = letter.time_lock_at && new Date(letter.time_lock_at) > new Date();
   const quiz = letter.quiz;
@@ -96,7 +101,7 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
       padding: '20px',
       overflowY: 'auto'
     }}>
-      <div className="craft-envelope-container">
+      <div className={`craft-envelope-container ${envClass}`}>
         {/* Close Button */}
         <button
           type="button"
@@ -124,7 +129,7 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
         </button>
 
         {/* ================= THE PHYSICAL CRAFT ENVELOPE ================= */}
-        <div className="craft-envelope-pocket">
+        <div className={`craft-envelope-pocket ${envClass}`}>
           {/* Top Curved Flap (Nắp gập cong có khóa trái tim) */}
           <div className={`craft-envelope-top-flap ${isOpeningFlap ? 'is-open' : ''}`}>
             {/* Heart Clasp Button in the center */}
@@ -144,7 +149,6 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
                 className="heart-clasp-btn"
                 title={`Nhấn vào trái tim để mở thư (-${letter.open_heart_cost} ❤️)`}
                 style={{
-                  background: isOpeningFlap ? 'var(--rose-primary)' : '#a36173',
                   transform: isOpeningFlap ? 'scale(1.3) rotate(15deg)' : undefined,
                   opacity: isOpeningFlap ? 0 : 1,
                   transition: 'opacity 0.4s, transform 0.4s'
@@ -193,20 +197,23 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
             position: 'relative',
             zIndex: 10
           }}>
-            {/* Postage Stamp at top-right */}
+            {/* Custom Postage Stamp at top-right */}
             <div
-              className="postage-stamp"
               style={{
                 position: 'absolute',
                 top: '18px',
                 right: '24px',
-                transform: 'rotate(4deg)'
+                transform: 'rotate(5deg)'
               }}
             >
-              <span style={{ fontSize: '18px' }}>🌹</span>
-              <span style={{ fontSize: '9px', fontWeight: '800', color: 'var(--rose-primary)' }}>
-                {letter.open_heart_cost} ❤️
-              </span>
+              <PostageStamp
+                design={envCfg.stamp_design || 'rose'}
+                imageUrl={envCfg.stamp_image}
+                cost={letter.open_heart_cost}
+                size="md"
+                showPostmark={true}
+                postmarkDate={letter.created_at}
+              />
             </div>
 
             {/* Title & Sender */}

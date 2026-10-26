@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Clock, Lock, CheckCircle2, Plus, Sparkles, Edit3, Trash2, Send, Archive } from 'lucide-react';
+import { PostageStamp } from './PostageStamp.jsx';
 
 export function LetterList({ letters, onSelectLetter, onOpenWriter, onEditLetter, onDeleteLetter, onSendDraft, currentUserId }) {
   const [filterTab, setFilterTab] = useState('all');
@@ -316,6 +317,19 @@ export function LetterList({ letters, onSelectLetter, onOpenWriter, onEditLetter
                     )}
                   </div>
                 </div>
+
+                {/* Mini Postage Stamp indicator */}
+                {letter.envelope_config && (
+                  <div style={{ flexShrink: 0, marginRight: '4px', display: 'none' /* visible on md+ */ }} className="stamp-preview-container">
+                    <PostageStamp
+                      design={letter.envelope_config.stamp_design || 'rose'}
+                      imageUrl={letter.envelope_config.stamp_image}
+                      cost={letter.open_heart_cost}
+                      size="sm"
+                      showPostmark={false}
+                    />
+                  </div>
+                )}
 
                 {/* Actions for letter sender */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -15,6 +15,8 @@ export function createLetter({
   bgm_track = null,
   wax_seal = { color: 'red', emblem: 'heart' },
   scent_tag = 'rose',
+  bg_image = null,
+  envelope_config = { color: 'dusty_rose', stamp_design: 'rose', stamp_image: null },
   open_heart_cost = 5,
   time_lock_at = null,
   status = 'sent',
@@ -27,8 +29,9 @@ export function createLetter({
     INSERT INTO letters (
       couple_id, sender_id, receiver_id, title, mood_tag, content,
       paper_style, photos, stickers, bgm_track, wax_seal, scent_tag,
+      bg_image, envelope_config,
       open_heart_cost, time_lock_at, status, milestone_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const res = stmt.run(
@@ -44,6 +47,8 @@ export function createLetter({
     bgm_track,
     typeof wax_seal === 'object' ? JSON.stringify(wax_seal) : (wax_seal || '{"color":"red","emblem":"heart"}'),
     scent_tag || 'rose',
+    bg_image || null,
+    typeof envelope_config === 'object' ? JSON.stringify(envelope_config) : (envelope_config || '{"color":"dusty_rose","stamp_design":"rose","stamp_image":null}'),
     open_heart_cost,
     time_lock_at,
     status || 'sent',
@@ -108,10 +113,16 @@ export function updateLetter(letterId, userId, data) {
   const time_lock_at = data.time_lock_at !== undefined ? data.time_lock_at : letter.time_lock_at;
   const status = data.status !== undefined ? data.status : (letter.status || 'sent');
 
+  const bg_image = data.bg_image !== undefined ? data.bg_image : letter.bg_image;
+  const envelope_config = data.envelope_config !== undefined
+    ? (typeof data.envelope_config === 'object' ? JSON.stringify(data.envelope_config) : data.envelope_config)
+    : letter.envelope_config;
+
   db.prepare(`
     UPDATE letters
     SET title = ?, mood_tag = ?, content = ?, paper_style = ?,
         photos = ?, stickers = ?, bgm_track = ?, wax_seal = ?, scent_tag = ?,
+        bg_image = ?, envelope_config = ?,
         open_heart_cost = ?, time_lock_at = ?, status = ?
     WHERE id = ?
   `).run(
@@ -124,6 +135,8 @@ export function updateLetter(letterId, userId, data) {
     bgm_track,
     wax_seal,
     scent_tag,
+    bg_image,
+    envelope_config,
     open_heart_cost,
     time_lock_at,
     status,
@@ -173,7 +186,7 @@ export function getLettersForCouple(coupleId, currentUserId) {
   const rows = db.prepare(`
     SELECT l.id, l.couple_id, l.sender_id, l.receiver_id, l.title, l.mood_tag,
            l.paper_style, l.open_heart_cost, l.time_lock_at, l.is_opened, l.opened_at,
-           l.status, l.created_at, l.milestone_id,
+           l.status, l.created_at, l.milestone_id, l.envelope_config,
            u.display_name as sender_name, u.avatar_url as sender_avatar,
            q.id as quiz_id, q.quiz_type, q.question as quiz_question, q.options as quiz_options, q.hint as quiz_hint, q.bypass_cost
     FROM letters l
@@ -201,6 +214,11 @@ export function getLettersForCouple(coupleId, currentUserId) {
         try { parsedOptions = JSON.parse(r.quiz_options); } catch (e) {}
       }
 
+      let envCfg = { color: 'dusty_rose', stamp_design: 'rose', stamp_image: null };
+      if (r.envelope_config) {
+        try { envCfg = JSON.parse(r.envelope_config); } catch (e) {}
+      }
+
       const item = {
         id: r.id,
         couple_id: r.couple_id,
@@ -211,6 +229,7 @@ export function getLettersForCouple(coupleId, currentUserId) {
         title: r.title,
         mood_tag: r.mood_tag,
         paper_style: r.paper_style,
+        envelope_config: envCfg,
         open_heart_cost: r.open_heart_cost,
         time_lock_at: r.time_lock_at,
         is_opened: isOpened ? 1 : 0,
@@ -232,13 +251,14 @@ export function getLettersForCouple(coupleId, currentUserId) {
 
       // Only include content if opened or if viewer is the sender
       if (isOpened || isSender) {
-        const full = db.prepare('SELECT content, photos, stickers, bgm_track, wax_seal, scent_tag FROM letters WHERE id = ?').get(r.id);
+        const full = db.prepare('SELECT content, photos, stickers, bgm_track, wax_seal, scent_tag, bg_image FROM letters WHERE id = ?').get(r.id);
         item.content = full.content;
         try { item.photos = JSON.parse(full.photos); } catch (e) { item.photos = []; }
         try { item.stickers = JSON.parse(full.stickers); } catch (e) { item.stickers = []; }
         try { item.wax_seal = JSON.parse(full.wax_seal); } catch (e) { item.wax_seal = { color: 'red', emblem: 'heart' }; }
         item.bgm_track = full.bgm_track;
         item.scent_tag = full.scent_tag || 'rose';
+        item.bg_image = full.bg_image || null;
       }
 
       return item;
@@ -272,6 +292,11 @@ export function getLetterDetail(letterId, currentUserId) {
   try { letter.photos = JSON.parse(letter.photos); } catch (e) { letter.photos = []; }
   try { letter.stickers = JSON.parse(letter.stickers); } catch (e) { letter.stickers = []; }
   try { letter.wax_seal = JSON.parse(letter.wax_seal); } catch (e) { letter.wax_seal = { color: 'red', emblem: 'heart' }; }
+  try {
+    letter.envelope_config = JSON.parse(letter.envelope_config);
+  } catch (e) {
+    letter.envelope_config = { color: 'dusty_rose', stamp_design: 'rose', stamp_image: null };
+  }
 
   const quiz = db.prepare('SELECT * FROM letter_quizzes WHERE letter_id = ?').get(letterId);
   if (quiz) {

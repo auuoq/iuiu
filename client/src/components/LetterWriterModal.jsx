@@ -2,10 +2,12 @@ import React, { useState, useRef } from 'react';
 import { api } from '../api/client.js';
 import {
   X, Image, Sparkles, HelpCircle, Calendar, Heart, Upload, Archive, Send,
-  Eye, Edit3, Type, Palette, Smile, Music, Play, Pause, Volume2, Move, ZoomIn, ZoomOut, RotateCw
+  Eye, Edit3, Type, Palette, Smile, Music, Play, Pause, Volume2, Move,
+  ZoomIn, ZoomOut, RotateCw, Trash2, Plus, Sliders, Mail
 } from 'lucide-react';
 import { DEFAULT_STICKERS } from './StickerDrawer.jsx';
 import { ROMANTIC_PLAYLIST } from './AudioPlayer.jsx';
+import { PostageStamp, STAMP_DESIGNS, ENVELOPE_THEMES } from './PostageStamp.jsx';
 
 export const PAPER_THEMES = [
   { id: 'kraft', name: 'Giấy Da Cổ Điển 📜', className: 'paper-kraft-vintage' },
@@ -37,15 +39,72 @@ export const SCENT_TAGS = [
   { id: 'jasmine', label: 'Hương hoa nhài thơm 🌼' }
 ];
 
+export const FONT_OPTIONS = [
+  { id: "'Caveat', cursive, sans-serif", name: 'Viết tay mộc mạc (Caveat)' },
+  { id: "'Dancing Script', cursive", name: 'Viết tay uốn lượn (Dancing Script)' },
+  { id: "'Pacifico', cursive", name: 'Nét chữ tròn ngọt ngào (Pacifico)' },
+  { id: "'Great Vibes', cursive", name: 'Thư pháp hoàng gia (Great Vibes)' },
+  { id: "'Playfair Display', Georgia, serif", name: 'Cổ điển thanh lịch (Playfair)' },
+  { id: "'Comfortaa', cursive", name: 'Tròn trịa ấm cúng (Comfortaa)' },
+  { id: "'Quicksand', sans-serif", name: 'Tươi trẻ nhẹ nhàng (Quicksand)' },
+  { id: "'Merriweather', serif", name: 'Văn học hoài niệm (Merriweather)' },
+  { id: 'var(--font-main)', name: 'Hiện đại dễ đọc (Sans-serif)' }
+];
+
+export const COLOR_PRESETS = [
+  { hex: '#2b2621', name: 'Nâu cà phê' },
+  { hex: '#8b1e2c', name: 'Đỏ rượu vang' },
+  { hex: '#d4526e', name: 'Hồng đào' },
+  { hex: '#1b3b6f', name: 'Xanh Navy' },
+  { hex: '#2d5a3f', name: 'Xanh rêu' },
+  { hex: '#5e3a75', name: 'Tím Lavender' },
+  { hex: '#9c6515', name: 'Vàng hổ phách' },
+  { hex: '#111111', name: 'Đen mực tàu' }
+];
+
+export const ANIMATED_STICKERS = [
+  {
+    id: 'anim-heart',
+    name: 'Tim Đập Rộn Ràng',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>@keyframes pulse{0%,100%{transform:scale(0.85);transform-origin:center;}50%{transform:scale(1.18);transform-origin:center;}}path{animation:pulse 0.9s infinite ease-in-out;}</style><path fill="%23e06d7e" d="M50 88s-35-22-35-46a20 20 0 0 1 35-12 20 20 0 0 1 35 12c0 24-35 46-35 46z"/><circle fill="%23fff" cx="35" cy="35" r="4"/></svg>'
+  },
+  {
+    id: 'anim-sparkle',
+    name: 'Sao Lấp Lánh',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>@keyframes spin{0%{transform:rotate(0deg) scale(0.9);transform-origin:center;}50%{transform:rotate(180deg) scale(1.15);transform-origin:center;}100%{transform:rotate(360deg) scale(0.9);transform-origin:center;}}polygon{animation:spin 3s infinite linear;}</style><polygon fill="%23f7b731" points="50,5 64,36 98,36 70,57 81,91 50,70 19,91 30,57 2,36 36,36"/></svg>'
+  },
+  {
+    id: 'anim-sakura',
+    name: 'Cánh Hoa Bay',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>@keyframes float{0%,100%{transform:translateY(0) rotate(0deg);transform-origin:center;}50%{transform:translateY(-8px) rotate(18deg);transform-origin:center;}}path{animation:float 2.2s infinite ease-in-out;}</style><path fill="%23fd79a8" d="M50 15c-10-15-25 5-10 20s20 20 20 20 5-5 20-20-10-35-20-20-5 5-10 0z"/><circle fill="%23ffeaa7" cx="50" cy="50" r="7"/></svg>'
+  },
+  {
+    id: 'anim-envelope',
+    name: 'Bao Thư Tình',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}g{animation:bounce 1.4s infinite ease-in-out;}</style><g><rect fill="%23fab1a0" x="10" y="30" width="80" height="55" rx="8"/><polygon fill="%23ff7675" points="10,30 50,60 90,30"/><path fill="%23d63031" d="M50 48c-3-6-10-4-10 1 0 7 10 13 10 13s10-6 10-13c0-5-7-7-10-1z"/></g></svg>'
+  },
+  {
+    id: 'anim-cat',
+    name: 'Mèo Ôm Tim',
+    url: 'https://media.giphy.com/media/MDJ9IbxxvDUQM/giphy.gif'
+  },
+  {
+    id: 'anim-bear',
+    name: 'Gấu Nhảy Múa',
+    url: 'https://media.giphy.com/media/kZqbBT64ECtjy/giphy.gif'
+  }
+];
+
 export function LetterWriterModal({ partner, letterToEdit = null, existingCategories = [], onClose, onLetterSaved }) {
   const isEditing = Boolean(letterToEdit);
-  const [activeTab, setActiveTab] = useState('edit'); // 'edit' | 'preview'
+  const [activeTab, setActiveTab] = useState('edit'); // 'edit' | 'decor' | 'envelope'
 
+  // Letter Basic Content
   const [title, setTitle] = useState(letterToEdit?.title || '');
   const [moodTag, setMoodTag] = useState(letterToEdit?.mood_tag || 'Mở khi nhớ nhau');
   const [content, setContent] = useState(letterToEdit?.content || '');
   const [paperStyle, setPaperStyle] = useState(letterToEdit?.paper_style || 'kraft');
-  const [fontFamily, setFontFamily] = useState(letterToEdit?.font_family || 'var(--font-handwriting)');
+  const [fontFamily, setFontFamily] = useState(letterToEdit?.font_family || "'Caveat', cursive, sans-serif");
   const [textColor, setTextColor] = useState(letterToEdit?.text_color || '#2b2621');
 
   // Wax seal & Scent
@@ -58,7 +117,16 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
   const [isPreviewAudioPlaying, setIsPreviewAudioPlaying] = useState(false);
   const previewAudioRef = useRef(null);
 
-  // Photos & Decorative draggable stickers on letter
+  // Outer Envelope & Postage Stamp
+  const [envelopeColor, setEnvelopeColor] = useState(letterToEdit?.envelope_config?.color || 'dusty_rose');
+  const [stampDesign, setStampDesign] = useState(letterToEdit?.envelope_config?.stamp_design || 'rose');
+  const [stampImage, setStampImage] = useState(letterToEdit?.envelope_config?.stamp_image || null);
+
+  // Custom Letter Paper Background
+  const [bgImage, setBgImage] = useState(letterToEdit?.bg_image || null);
+  const [bgOpacity, setBgOpacity] = useState(0.2);
+
+  // Photos & Decorative Draggable Stickers / GIFs
   const [photos, setPhotos] = useState(() => {
     if (letterToEdit?.photos) {
       return letterToEdit.photos.map(p => typeof p === 'string' ? { url: p, caption: 'Kỷ niệm của hai đứa 📸' } : p);
@@ -67,7 +135,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
   });
 
   const [letterStickers, setLetterStickers] = useState(() => {
-    if (letterToEdit?.stickers) {
+    if (letterToEdit?.stickers && letterToEdit.stickers.length > 0) {
       return letterToEdit.stickers;
     }
     return [
@@ -76,6 +144,12 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
     ];
   });
 
+  const [selectedStickerId, setSelectedStickerId] = useState(null);
+  const [selectedStickerTab, setSelectedStickerTab] = useState('classic'); // 'classic' | 'animated'
+  const canvasRef = useRef(null);
+  const dragInfoRef = useRef({ startX: 0, startY: 0, origX: 0, origY: 0, itemId: null });
+
+  // Letter Lock and Unlock Rules
   const [openHeartCost, setOpenHeartCost] = useState(letterToEdit?.open_heart_cost ?? 5);
   const [timeLockAt, setTimeLockAt] = useState(() => {
     if (letterToEdit?.time_lock_at) {
@@ -86,7 +160,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
     }
     return '';
   });
-  
+
   // Quiz states
   const [hasQuiz, setHasQuiz] = useState(Boolean(letterToEdit?.quiz));
   const [quizType, setQuizType] = useState(letterToEdit?.quiz?.quiz_type || 'choice');
@@ -103,67 +177,91 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const contentTextareaRef = useRef(null);
 
-  const defaultSuggestions = ['Mở khi nhớ nhau', 'Mở khi buồn', 'Mở khi giận nhau', 'Mở khi đi xa', 'Kỷ niệm', 'Tâm sự đêm khuya'];
-  const allSuggestions = Array.from(new Set([...existingCategories, ...defaultSuggestions])).filter(Boolean);
-
-  const quickStickers = ['❤️', '💌', '🧸', '🌸', '☕', '🌟', '💍', '💋', '🎀', '✨', '🌿', '🍓', '🍫', '🥂', '🕊️'];
-
-  // Handle BGM Play/Pause in Preview
+  // Audio Preview toggle
   const togglePreviewBgm = () => {
     if (!previewAudioRef.current) {
       previewAudioRef.current = new Audio(bgmTrack);
       previewAudioRef.current.loop = true;
       previewAudioRef.current.volume = 0.45;
     }
-    const audio = previewAudioRef.current;
+
     if (isPreviewAudioPlaying) {
-      audio.pause();
+      previewAudioRef.current.pause();
       setIsPreviewAudioPlaying(false);
     } else {
-      audio.src = bgmTrack;
-      audio.play().then(() => setIsPreviewAudioPlaying(true)).catch(e => console.warn(e));
+      previewAudioRef.current.src = bgmTrack;
+      previewAudioRef.current.play().then(() => {
+        setIsPreviewAudioPlaying(true);
+      }).catch(e => console.warn(e));
     }
   };
 
-  const handleInsertEmoji = (emoji) => {
-    const textarea = contentTextareaRef.current;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newText = content.substring(0, start) + emoji + content.substring(end);
-      setContent(newText);
-      setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
-        textarea.focus();
-      }, 0);
-    } else {
-      setContent(prev => prev + emoji);
-    }
-  };
+  // Sticker & Canvas Drag-and-Drop Handlers
+  const handlePointerDown = (e, item) => {
+    e.stopPropagation();
+    setSelectedStickerId(item.id);
 
-  const handleAddDecorativeSticker = (stickerUrl) => {
-    const newStk = {
-      id: `letter-stk-${Date.now()}`,
-      url: stickerUrl,
-      x: Math.floor(Math.random() * 65 + 15),
-      y: Math.floor(Math.random() * 60 + 20),
-      scale: 1,
-      rotation: Math.floor(Math.random() * 20 - 10)
+    const clientX = e.clientX ?? (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY ?? (e.touches && e.touches[0].clientY);
+
+    dragInfoRef.current = {
+      startX: clientX,
+      startY: clientY,
+      origX: item.x,
+      origY: item.y,
+      itemId: item.id
     };
-    setLetterStickers([...letterStickers, newStk]);
+
+    const handlePointerMove = (moveEvt) => {
+      if (!canvasRef.current || !dragInfoRef.current.itemId) return;
+      const currentX = moveEvt.clientX ?? (moveEvt.touches && moveEvt.touches[0].clientX);
+      const currentY = moveEvt.clientY ?? (moveEvt.touches && moveEvt.touches[0].clientY);
+      const deltaX = currentX - dragInfoRef.current.startX;
+      const deltaY = currentY - dragInfoRef.current.startY;
+
+      const rect = canvasRef.current.getBoundingClientRect();
+      const pctDeltaX = (deltaX / rect.width) * 100;
+      const pctDeltaY = (deltaY / rect.height) * 100;
+
+      const newX = Math.min(92, Math.max(2, dragInfoRef.current.origX + pctDeltaX));
+      const newY = Math.min(92, Math.max(2, dragInfoRef.current.origY + pctDeltaY));
+
+      setLetterStickers(prev => prev.map(s => s.id === dragInfoRef.current.itemId ? { ...s, x: newX, y: newY } : s));
+    };
+
+    const handlePointerUp = () => {
+      dragInfoRef.current.itemId = null;
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('touchmove', handlePointerMove);
+      window.removeEventListener('touchend', handlePointerUp);
+    };
+
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+    window.addEventListener('touchmove', handlePointerMove, { passive: false });
+    window.addEventListener('touchend', handlePointerUp);
   };
 
-  const handleRemoveDecorativeSticker = (stkId) => {
-    setLetterStickers(letterStickers.filter(s => s.id !== stkId));
+  const handleAddSticker = (url) => {
+    const newStk = {
+      id: `stk-${Date.now()}`,
+      url,
+      x: Math.floor(Math.random() * 50 + 25),
+      y: Math.floor(Math.random() * 45 + 25),
+      scale: 1,
+      rotation: Math.floor(Math.random() * 16 - 8)
+    };
+    setLetterStickers(prev => [...prev, newStk]);
+    setSelectedStickerId(newStk.id);
   };
 
-  const handleAdjustSticker = (stkId, prop, delta) => {
-    setLetterStickers(letterStickers.map(s => {
-      if (s.id !== stkId) return s;
+  const handleAdjustSticker = (id, prop, delta) => {
+    setLetterStickers(prev => prev.map(s => {
+      if (s.id !== id) return s;
       if (prop === 'scale') {
-        return { ...s, scale: Math.min(1.8, Math.max(0.6, (s.scale || 1) + delta)) };
+        return { ...s, scale: Math.min(2.5, Math.max(0.5, Number(((s.scale || 1) + delta).toFixed(2)))) };
       }
       if (prop === 'rotation') {
         return { ...s, rotation: ((s.rotation || 0) + delta) % 360 };
@@ -172,6 +270,49 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
     }));
   };
 
+  const handleRemoveSticker = (id) => {
+    setLetterStickers(prev => prev.filter(s => s.id !== id));
+    if (selectedStickerId === id) setSelectedStickerId(null);
+  };
+
+  // Upload custom sticker / animated GIF from computer
+  const handleCustomStickerUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const res = await api.uploadFile(file);
+      handleAddSticker(res.url);
+    } catch (err) {
+      setError('Tải sticker/GIF thất bại: ' + err.message);
+    }
+  };
+
+  // Upload custom paper background image
+  const handleBgImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const res = await api.uploadFile(file);
+      setBgImage(res.url);
+    } catch (err) {
+      setError('Tải ảnh nền thất bại: ' + err.message);
+    }
+  };
+
+  // Upload photo for custom postage stamp
+  const handleStampPhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const res = await api.uploadFile(file);
+      setStampImage(res.url);
+      setStampDesign('custom');
+    } catch (err) {
+      setError('Tải ảnh tem thất bại: ' + err.message);
+    }
+  };
+
+  // Polaroid Photo Upload
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -179,7 +320,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
       const res = await api.uploadFile(file);
       setPhotos([...photos, { url: res.url, caption: 'Kỷ niệm của hai đứa 📸' }]);
     } catch (err) {
-      setError('Tải ảnh thất bại: ' + err.message);
+      setError('Tải ảnh polaroid thất bại: ' + err.message);
     }
   };
 
@@ -187,14 +328,14 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
     setPhotos(photos.filter((_, i) => i !== index));
   };
 
+  // Save or Send Letter
   const handleSave = async (status = 'sent') => {
-    if (!title.trim() || !content.trim()) {
-      setError('Vui lòng nhập tiêu đề và nội dung lá thư');
+    if (!title.trim()) {
+      setError('Vui lòng nhập tiêu đề cho lá thư');
       return;
     }
-
-    if (!moodTag.trim()) {
-      setError('Vui lòng nhập loại thư');
+    if (!content.trim()) {
+      setError('Vui lòng viết vài dòng nội dung gửi gắm yêu thương');
       return;
     }
 
@@ -226,6 +367,12 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
         scent_tag: scentTag || 'rose',
         font_family: fontFamily,
         text_color: textColor,
+        bg_image: bgImage || null,
+        envelope_config: {
+          color: envelopeColor,
+          stamp_design: stampDesign,
+          stamp_image: stampImage
+        },
         open_heart_cost: Number(openHeartCost),
         time_lock_at: timeLockAt ? new Date(timeLockAt).toISOString() : null,
         status
@@ -262,6 +409,16 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
   const currentWaxEmblemIcon = WAX_EMBLEMS.find(e => e.id === waxEmblem)?.icon || '❤️';
   const currentScent = SCENT_TAGS.find(s => s.id === scentTag)?.label || SCENT_TAGS[0].label;
 
+  const defaultSuggestions = [
+    'Mở khi nhớ nhau',
+    'Mở khi thấy mệt mỏi',
+    'Mở khi cần động viên',
+    'Mở khi giận dỗi',
+    'Mở vào ngày kỷ niệm',
+    'Mở khi không ngủ được'
+  ];
+  const allSuggestions = Array.from(new Set([...defaultSuggestions, ...existingCategories]));
+
   return (
     <div style={{
       position: 'fixed',
@@ -279,7 +436,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
         background: 'var(--paper-cream)',
         border: '1px solid var(--border-subtle)',
         borderRadius: '24px',
-        maxWidth: '750px',
+        maxWidth: '820px',
         width: '100%',
         maxHeight: '92vh',
         overflowY: 'auto',
@@ -300,30 +457,41 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
             background: 'none',
             border: 'none',
             color: 'var(--text-light)',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            zIndex: 20
           }}
         >
           <X size={22} />
         </button>
 
-        {/* Header with Mode Switch (Edit vs Preview) */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px', paddingRight: '36px' }}>
+        {/* Modal Header & 3 Navigation Tabs */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          marginBottom: '20px',
+          borderBottom: '1px solid var(--border-subtle)',
+          paddingBottom: '14px'
+        }}>
           <div>
-            <h2 style={{ fontSize: '20px', fontWeight: '800' }}>
-              {isEditing ? `Chỉnh Sửa Lá Thư Gửi ${partner.display_name} 📝` : `Xưởng Thư Tình Nghệ Thuật Cho ${partner.display_name} 💌`}
+            <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-ink)' }}>
+              {isEditing ? 'Chỉnh Sửa Lá Thư Yêu Thương' : 'Gửi Gắm Lá Thư Yêu Thương'}
             </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px' }}>
-              Trang trí giấy thủ công, gắn nhạc du dương và cài hương thơm kỷ niệm
-            </p>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
+              Người nhận: <strong style={{ color: 'var(--rose-primary)' }}>{partner.display_name}</strong>
+            </div>
           </div>
 
-          {/* Mode Switch Tabs */}
+          {/* 3 Interactive Mode Tabs */}
           <div style={{
             display: 'flex',
             background: '#eee8de',
             padding: '3px',
             borderRadius: '14px',
-            border: '1px solid var(--border-subtle)'
+            border: '1px solid var(--border-subtle)',
+            gap: '2px'
           }}>
             <button
               type="button"
@@ -332,7 +500,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px',
-                padding: '6px 14px',
+                padding: '6px 12px',
                 borderRadius: '11px',
                 border: 'none',
                 background: activeTab === 'edit' ? '#fff' : 'transparent',
@@ -343,27 +511,47 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 boxShadow: activeTab === 'edit' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
               }}
             >
-              <Edit3 size={13} /> Soạn Thảo
+              <Edit3 size={13} /> 1. Soạn Thảo
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('preview')}
+              onClick={() => setActiveTab('decor')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px',
-                padding: '6px 14px',
+                padding: '6px 12px',
                 borderRadius: '11px',
                 border: 'none',
-                background: activeTab === 'preview' ? '#fff' : 'transparent',
-                color: activeTab === 'preview' ? 'var(--rose-primary)' : 'var(--text-muted)',
+                background: activeTab === 'decor' ? '#fff' : 'transparent',
+                color: activeTab === 'decor' ? 'var(--rose-primary)' : 'var(--text-muted)',
                 fontWeight: '700',
                 fontSize: '12.5px',
                 cursor: 'pointer',
-                boxShadow: activeTab === 'preview' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+                boxShadow: activeTab === 'decor' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
               }}
             >
-              <Eye size={13} /> Xem Trước (Preview)
+              <Sparkles size={13} /> 2. Trang Trí Canvas
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('envelope')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '6px 12px',
+                borderRadius: '11px',
+                border: 'none',
+                background: activeTab === 'envelope' ? '#fff' : 'transparent',
+                color: activeTab === 'envelope' ? 'var(--rose-primary)' : 'var(--text-muted)',
+                fontWeight: '700',
+                fontSize: '12.5px',
+                cursor: 'pointer',
+                boxShadow: activeTab === 'envelope' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+              }}
+            >
+              <Mail size={13} /> 3. Phong Bì & Tem
             </button>
           </div>
         </div>
@@ -374,8 +562,8 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
           </div>
         )}
 
-        {/* ================= TAB 1: EDIT MODE ================= */}
-        {activeTab === 'edit' ? (
+        {/* ================= TAB 1: SOẠN THẢO (EDIT MODE) ================= */}
+        {activeTab === 'edit' && (
           <form onSubmit={(e) => { e.preventDefault(); handleSave('sent'); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Category / Mood Tag */}
             <div>
@@ -446,57 +634,99 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
               />
             </div>
 
-            {/* Row: 5 Paper Styles & Font & Ink Color */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-              {/* Paper Theme */}
+            {/* Row: 8 Fonts & Unrestricted Color Picker */}
+            <div style={{
+              background: '#fcf8f2',
+              border: '1px solid #ebd9c8',
+              borderRadius: '16px',
+              padding: '14px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '14px'
+            }}>
+              {/* Expanded Font Selector (8 Vietnamese Fonts) */}
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Chất liệu giấy nghệ thuật:
-                </label>
-                <select
-                  value={paperStyle}
-                  onChange={(e) => setPaperStyle(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '13px', fontWeight: '600' }}
-                >
-                  {PAPER_THEMES.map(theme => (
-                    <option key={theme.id} value={theme.id}>{theme.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Font Choice */}
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Phông chữ viết thư:
+                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                  <Type size={14} color="var(--rose-primary)" />
+                  <span>Phông chữ tiếng Việt (8 kiểu):</span>
                 </label>
                 <select
                   value={fontFamily}
                   onChange={(e) => setFontFamily(e.target.value)}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '13px', fontWeight: '600' }}
                 >
-                  <option value="var(--font-handwriting)">Viết tay mộc mạc (Caveat)</option>
-                  <option value="'Dancing Script', cursive">Viết tay uốn lượn (Dancing Script)</option>
-                  <option value="var(--font-serif)">Cổ điển thanh lịch (Playfair)</option>
-                  <option value="var(--font-main)">Hiện đại dễ đọc (Sans)</option>
+                  {FONT_OPTIONS.map(f => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
                 </select>
               </div>
 
-              {/* Ink Color */}
+              {/* Ink Color Picker + Presets */}
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Màu mực:
+                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Palette size={14} color="var(--rose-primary)" />
+                    <span>Màu mực viết thư:</span>
+                  </span>
+                  <input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    title="Chọn màu mực tùy thích"
+                    style={{ width: '26px', height: '22px', border: 'none', background: 'none', cursor: 'pointer', verticalAlign: 'middle' }}
+                  />
                 </label>
-                <select
-                  value={textColor}
-                  onChange={(e) => setTextColor(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '13px', fontWeight: '600' }}
-                >
-                  <option value="#2b2621">Nâu cà phê cổ điển</option>
-                  <option value="#111111">Mực đen tuyền</option>
-                  <option value="#8b1e2c">Mực đỏ rượu vang</option>
-                  <option value="#1b3b6f">Mực xanh navy</option>
-                </select>
+                <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {COLOR_PRESETS.map((c, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setTextColor(c.hex)}
+                      title={c.name}
+                      style={{
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        background: c.hex,
+                        border: textColor === c.hex ? '2px solid #fff' : '1px solid rgba(0,0,0,0.1)',
+                        boxShadow: textColor === c.hex ? '0 0 0 2px var(--rose-primary)' : 'none',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
+            </div>
+
+            {/* Content Textarea with live font and color */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                  Lời tâm tình của bạn:
+                </label>
+                <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>
+                  Có thể chèn emoji hoặc trang trí thêm ảnh ở tab 2
+                </span>
+              </div>
+              <textarea
+                required
+                rows={7}
+                placeholder="Gửi em, lá thư này anh viết vào một buổi chiều nhớ em thật nhiều..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-subtle)',
+                  background: '#fffdf9',
+                  fontFamily: fontFamily,
+                  color: textColor,
+                  fontSize: '18px',
+                  lineHeight: '1.8',
+                  resize: 'vertical'
+                }}
+              />
             </div>
 
             {/* Row: Wax Seal & Scent & Background Music */}
@@ -509,13 +739,12 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '12px'
             }}>
-              {/* Wax Seal Customization */}
+              {/* Wax Seal */}
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--rose-primary)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                  <span>Con Dấu Sáp Niêm Phong:</span>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--rose-primary)', display: 'block', marginBottom: '4px' }}>
+                  Con Dấu Sáp Niêm Phong:
                 </label>
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  {/* Colors */}
                   {WAX_SEAL_COLORS.map(c => (
                     <button
                       key={c.id}
@@ -532,7 +761,6 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                       }}
                     />
                   ))}
-                  {/* Emblems */}
                   <select
                     value={waxEmblem}
                     onChange={(e) => setWaxEmblem(e.target.value)}
@@ -561,17 +789,17 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 </select>
               </div>
 
-              {/* Background Music for Letter */}
+              {/* Letter BGM */}
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span>Giai điệu khi mở thư 🎵:</span>
+                  <span>Nhạc nền khi mở thư 🎵:</span>
                   <button
                     type="button"
                     onClick={togglePreviewBgm}
                     style={{ background: 'none', border: 'none', color: 'var(--rose-primary)', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px', fontWeight: '700' }}
                   >
                     {isPreviewAudioPlaying ? <Pause size={12} /> : <Play size={12} />}
-                    <span>{isPreviewAudioPlaying ? 'Dừng thử' : 'Nghe thử'}</span>
+                    <span>{isPreviewAudioPlaying ? 'Dừng' : 'Nghe thử'}</span>
                   </button>
                 </label>
                 <select
@@ -592,152 +820,42 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
               </div>
             </div>
 
-            {/* Quick Stickers and Decorative Stickers */}
-            <div style={{
-              background: '#faf6ee',
-              border: '1px solid #ebd9c8',
-              borderRadius: '12px',
-              padding: '8px 12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap'
-            }}>
-              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--rose-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Smile size={14} /> Chèn Sticker:
-              </span>
-              <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                {quickStickers.map((em, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleInsertEmoji(em)}
-                    title={`Chèn ${em} vào nội dung`}
-                    style={{
-                      background: '#fff',
-                      border: '1px solid #eee',
-                      borderRadius: '8px',
-                      padding: '3px 7px',
-                      fontSize: '15px',
-                      cursor: 'pointer',
-                      transition: 'transform 0.1s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                  >
-                    {em}
-                  </button>
-                ))}
-              </div>
-
-              {/* Add decorative sticker to paper */}
-              <button
-                type="button"
-                onClick={() => handleAddDecorativeSticker(DEFAULT_STICKERS[Math.floor(Math.random() * DEFAULT_STICKERS.length)].url)}
-                style={{
-                  marginLeft: 'auto',
-                  background: 'var(--rose-light)',
-                  border: '1px dashed var(--rose-primary)',
-                  color: 'var(--rose-primary)',
-                  padding: '4px 10px',
-                  borderRadius: '8px',
-                  fontSize: '11.5px',
-                  fontWeight: '700',
-                  cursor: 'pointer'
-                }}
-              >
-                + Dán Lên Giấy Thư 🌸
-              </button>
-            </div>
-
-            {/* Letter Content Textarea */}
-            <div>
-              <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Nội dung lá thư:
-              </label>
-              <textarea
-                ref={contentTextareaRef}
-                required
-                rows={7}
-                placeholder="Viết tâm sự, những lời yêu thương, kỷ niệm muốn gửi gắm tại đây..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className={currentTheme.className}
-                style={{
-                  width: '100%',
-                  padding: '16px',
-                  borderRadius: '14px',
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: '17px',
-                  lineHeight: '1.75',
-                  resize: 'vertical',
-                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)'
-                }}
-              />
-            </div>
-
-            {/* Polaroid Photos Section */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-muted)' }}>
-                  Ảnh kỷ niệm đính kèm (Polaroid):
-                </label>
+            {/* Photos Attachment (Polaroid) */}
+            <div style={{ background: '#fff', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Image size={15} color="var(--rose-primary)" />
+                  <span>Ảnh Polaroid Kỷ Niệm ({photos.length}/4)</span>
+                </span>
                 <label style={{
-                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  background: 'var(--rose-light)',
                   color: 'var(--rose-primary)',
+                  padding: '5px 12px',
+                  borderRadius: '10px',
                   fontSize: '12px',
                   fontWeight: '700',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
+                  cursor: 'pointer'
                 }}>
-                  <Upload size={13} /> Thêm ảnh từ máy
+                  <Upload size={13} />
+                  <span>Thêm ảnh kỷ niệm</span>
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
                 </label>
               </div>
 
               {photos.length > 0 && (
-                <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '10px' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '10px' }}>
                   {photos.map((p, idx) => (
-                    <div key={idx} style={{ position: 'relative' }}>
-                      <div className="polaroid" style={{ width: '135px', padding: '6px 6px 14px 6px' }}>
-                        <div className="washi-tape" style={{ width: '45px', height: '12px' }} />
-                        <img src={typeof p === 'string' ? p : p.url} alt="Polaroid" style={{ width: '100%', height: '95px', objectFit: 'cover' }} />
-                        <div
-                          style={{
-                            fontFamily: 'var(--font-handwriting)',
-                            fontSize: '13px',
-                            textAlign: 'center',
-                            marginTop: '6px',
-                            color: '#3b332b'
-                          }}
-                        >
-                          {(typeof p === 'object' && p.caption) || 'Kỷ niệm 📸'}
-                        </div>
-                      </div>
+                    <div key={idx} style={{ position: 'relative', width: '90px' }}>
+                      <img src={typeof p === 'string' ? p : p.url} alt="photo" style={{ width: '90px', height: '90px', objectFit: 'cover', borderRadius: '8px' }} />
                       <button
                         type="button"
                         onClick={() => handleRemovePhoto(idx)}
-                        style={{
-                          position: 'absolute',
-                          top: '-6px',
-                          right: '-6px',
-                          background: '#ff4757',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: '20px',
-                          height: '20px',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          zIndex: 10
-                        }}
+                        style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#e06d7e', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                       >
-                        ×
+                        <X size={12} />
                       </button>
                     </div>
                   ))}
@@ -745,58 +863,58 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
               )}
             </div>
 
-            {/* Cost & Time Lock Setting */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '14px', background: '#faf6ee', padding: '16px', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Phí mở thư:
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {/* Time lock & Quiz Settings */}
+            <div style={{
+              background: '#fbf7ee',
+              border: '1px solid #ebd9c8',
+              borderRadius: '16px',
+              padding: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Phí mở thư (Trái tim ❤️):
+                  </label>
                   <input
                     type="number"
                     min="0"
                     max="100"
                     value={openHeartCost}
                     onChange={(e) => setOpenHeartCost(e.target.value)}
-                    style={{ width: '80px', padding: '8px 10px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontWeight: '700', fontSize: '14px' }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '13px', fontWeight: '700' }}
                   />
-                  <span style={{ fontSize: '13px', color: 'var(--rose-primary)', fontWeight: '700' }}>❤️ Trái Tim</span>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Hẹn giờ mở thư (Tùy chọn):
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={timeLockAt}
+                    onChange={(e) => setTimeLockAt(e.target.value)}
+                    style={{ width: '100%', padding: '7px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '13px' }}
+                  />
                 </div>
               </div>
 
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Hẹn giờ mở thư:
+              {/* Quiz Toggle */}
+              <div style={{ paddingTop: '8px', borderTop: '1px dashed #e2d2c0' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', color: 'var(--rose-primary)' }}>
+                  <input
+                    type="checkbox"
+                    checked={hasQuiz}
+                    onChange={(e) => setHasQuiz(e.target.checked)}
+                  />
+                  <span>🔒 Cài đặt câu đố tình yêu để mở khóa thư</span>
                 </label>
-                <input
-                  type="datetime-local"
-                  value={timeLockAt}
-                  onChange={(e) => setTimeLockAt(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
-                />
-              </div>
-            </div>
 
-            {/* Quiz Toggle */}
-            <div style={{ background: '#faf6ee', padding: '14px 16px', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13.5px', fontWeight: '700', color: 'var(--text-ink)' }}>
-                <Sparkles size={16} color="var(--rose-primary)" />
-                <span>Cài đặt câu đố tình yêu để mở khóa</span>
-                <input
-                  type="checkbox"
-                  checked={hasQuiz}
-                  onChange={(e) => setHasQuiz(e.target.checked)}
-                  style={{ marginLeft: 'auto', width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-              </label>
-
-              {hasQuiz && (
-                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '14px', borderTop: '1px dashed #e4d7cb' }}>
-                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                      Hình thức câu đố:
-                    </label>
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                {hasQuiz && (
+                  <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', gap: '16px' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
                         <input
                           type="radio"
@@ -815,30 +933,20 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                           checked={quizType === 'text'}
                           onChange={() => setQuizType('text')}
                         />
-                        Tự luận (Nhập chữ tự do)
+                        Tự luận (Nhập chữ)
                       </label>
                     </div>
-                  </div>
 
-                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                      Câu hỏi đố:
-                    </label>
                     <input
                       type="text"
-                      placeholder="Ví dụ: Ngày đầu tiên hai đứa gặp nhau là ở đâu?"
+                      placeholder="Câu hỏi đố (Ví dụ: Ngày đầu tiên hai đứa gặp nhau ở đâu?)"
                       value={quizQuestion}
                       onChange={(e) => setQuizQuestion(e.target.value)}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13.5px' }}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                     />
-                  </div>
 
-                  {quizType === 'choice' && (
-                    <div>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                        Các phương án lựa chọn:
-                      </label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {quizType === 'choice' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {quizOptions.map((opt, i) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontSize: '12px', fontWeight: '700', width: '20px' }}>{String.fromCharCode(65 + i)}.</span>
@@ -851,13 +959,13 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                                 newOpts[i] = e.target.value;
                                 setQuizOptions(newOpts);
                               }}
-                              style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
+                              style={{ flex: 1, padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                             />
                             <button
                               type="button"
                               onClick={() => setCorrectAnswer(opt)}
                               style={{
-                                padding: '6px 10px',
+                                padding: '5px 10px',
                                 borderRadius: '8px',
                                 border: correctAnswer === opt && opt.trim() ? '2px solid #2e7d32' : '1px solid #ccc',
                                 background: correctAnswer === opt && opt.trim() ? '#e8f5e9' : '#fff',
@@ -872,41 +980,31 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {quizType === 'text' && (
-                    <div>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                        Đáp án đúng:
-                      </label>
+                    {quizType === 'text' && (
                       <input
                         type="text"
                         placeholder="Nhập đáp án chuẩn xác..."
                         value={correctAnswer}
                         onChange={(e) => setCorrectAnswer(e.target.value)}
-                        style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13.5px' }}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                       />
-                    </div>
-                  )}
+                    )}
 
-                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                      Gợi ý ngọt ngào (khi đối phương bị bí):
-                    </label>
                     <input
                       type="text"
-                      placeholder="Gợi ý ngọt ngào..."
+                      placeholder="Gợi ý ngọt ngào khi đối phương bị bí..."
                       value={quizHint}
                       onChange={(e) => setQuizHint(e.target.value)}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                     />
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
-            {/* Submit Actions */}
+            {/* Bottom Actions */}
             <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
               <button
                 type="button"
@@ -929,7 +1027,30 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 }}
               >
                 <Archive size={16} />
-                <span>{loading ? 'Đang lưu...' : 'Lưu kho lưu trữ (Nháp)'}</span>
+                <span>{loading ? 'Đang lưu...' : 'Lưu Nháp'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('decor')}
+                style={{
+                  flex: 1,
+                  background: '#fff',
+                  color: 'var(--rose-primary)',
+                  border: '1px solid var(--rose-primary)',
+                  borderRadius: '14px',
+                  padding: '13px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Sparkles size={16} />
+                <span>Sang Bước 2: Trang Trí ✨</span>
               </button>
 
               <button
@@ -953,29 +1074,122 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 }}
               >
                 <Send size={16} />
-                <span>{loading ? 'Đang gửi...' : 'Niêm Phong & Gửi Thư 💌'}</span>
+                <span>{loading ? 'Đang gửi...' : 'Gửi Thư Ngay 💌'}</span>
               </button>
             </div>
           </form>
-        ) : (
-          /* ================= TAB 2: LIVE PREVIEW MODE ================= */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        )}
+
+        {/* ================= TAB 2: TRANG TRÍ CANVAS (DRAG-AND-DROP CANVAS) ================= */}
+        {activeTab === 'decor' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Top Toolbar for Canvas Customization */}
+            <div style={{
+              background: '#fcf8f2',
+              border: '1px solid #ebd9c8',
+              borderRadius: '16px',
+              padding: '12px 16px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px'
+            }}>
+              {/* Paper presets & Background Image upload */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-ink)' }}>Giấy thư:</span>
+                <select
+                  value={paperStyle}
+                  onChange={(e) => setPaperStyle(e.target.value)}
+                  style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '12.5px', fontWeight: '600' }}
+                >
+                  {PAPER_THEMES.map(theme => (
+                    <option key={theme.id} value={theme.id}>{theme.name}</option>
+                  ))}
+                </select>
+
+                <label style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: bgImage ? 'var(--rose-light)' : '#fff',
+                  color: bgImage ? 'var(--rose-primary)' : 'var(--text-ink)',
+                  border: '1px solid var(--border-subtle)',
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}>
+                  <Upload size={12} />
+                  <span>{bgImage ? 'Đổi ảnh nền riêng' : 'Tải ảnh nền thư'}</span>
+                  <input type="file" accept="image/*" onChange={handleBgImageUpload} style={{ display: 'none' }} />
+                </label>
+
+                {bgImage && (
+                  <button
+                    type="button"
+                    onClick={() => setBgImage(null)}
+                    style={{ background: 'none', border: 'none', color: '#c62828', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Xóa ảnh nền
+                  </button>
+                )}
+              </div>
+
+              {/* Background Opacity slider if custom bg uploaded */}
+              {bgImage && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Độ mờ nền:</span>
+                  <input
+                    type="range"
+                    min="0.08"
+                    max="0.45"
+                    step="0.02"
+                    value={bgOpacity}
+                    onChange={(e) => setBgOpacity(Number(e.target.value))}
+                    style={{ width: '80px', accentColor: 'var(--rose-primary)' }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* THE INTERACTIVE LETTER PAPER CANVAS */}
             <div
-              className={currentTheme.className}
+              ref={canvasRef}
+              className={`letter-canvas-surface ${currentTheme.className}`}
               style={{
-                borderRadius: '20px',
-                padding: '36px',
-                boxShadow: '0 15px 35px rgba(0,0,0,0.08)',
                 position: 'relative',
+                minHeight: '460px',
+                padding: '36px',
+                borderRadius: '20px',
                 overflow: 'hidden'
               }}
+              onClick={() => setSelectedStickerId(null)}
             >
+              {/* Optional Custom Background Overlay */}
+              {bgImage && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundImage: `url(${bgImage})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    opacity: bgOpacity,
+                    pointerEvents: 'none',
+                    borderRadius: '20px',
+                    zIndex: 0
+                  }}
+                />
+              )}
+
               {/* Scent Tag in top corner */}
               <div style={{
                 position: 'absolute',
                 top: '16px',
                 right: '20px',
-                background: 'rgba(255, 255, 255, 0.85)',
+                background: 'rgba(255, 255, 255, 0.88)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '16px',
                 padding: '4px 12px',
@@ -985,31 +1199,15 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+                boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
+                zIndex: 2
               }}>
                 <span>🌸</span>
                 <span>{currentScent}</span>
               </div>
 
-              {/* Decorative Stickers in Preview */}
-              {letterStickers.map(stk => (
-                <div
-                  key={stk.id}
-                  style={{
-                    position: 'absolute',
-                    left: `${stk.x}%`,
-                    top: `${stk.y}%`,
-                    transform: `scale(${stk.scale || 1}) rotate(${stk.rotation || 0}deg)`,
-                    pointerEvents: 'none',
-                    filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.15))'
-                  }}
-                >
-                  <img src={stk.url} alt="sticker" style={{ width: '40px', height: '40px' }} />
-                </div>
-              ))}
-
-              {/* Top Custom Wax Seal Stamp Preview */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '22px', borderBottom: '1px dashed var(--border-subtle)', paddingBottom: '16px' }}>
+              {/* Top Custom Wax Seal Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '22px', borderBottom: '1px dashed var(--border-subtle)', paddingBottom: '16px', position: 'relative', zIndex: 2 }}>
                 <div className={`wax-seal wax-seal-${waxColor}`} style={{ width: '50px', height: '50px', fontSize: '20px' }}>
                   {currentWaxEmblemIcon}
                 </div>
@@ -1026,7 +1224,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 </div>
               </div>
 
-              {/* Letter Body Preview with Selected Font and Color */}
+              {/* Letter Text Content on Canvas */}
               <div style={{
                 fontFamily: fontFamily,
                 color: textColor,
@@ -1034,33 +1232,212 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 lineHeight: '1.85',
                 whiteSpace: 'pre-wrap',
                 minHeight: '120px',
-                marginBottom: '26px'
+                marginBottom: '26px',
+                position: 'relative',
+                zIndex: 2,
+                pointerEvents: 'none'
               }}>
-                {content || '(Hãy viết vài dòng yêu thương vào nội dung lá thư...)'}
+                {content || '(Hãy viết vài dòng tâm tình vào nội dung lá thư...)'}
               </div>
 
-              {/* Polaroid Attachments Preview */}
+              {/* Polaroid Attachments Preview on Canvas */}
               {photos.length > 0 && (
-                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px dashed rgba(0,0,0,0.1)' }}>
+                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px dashed rgba(0,0,0,0.1)', position: 'relative', zIndex: 2 }}>
                   <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '12px' }}>
                     Ảnh kỷ niệm kèm theo:
                   </div>
                   <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
                     {photos.map((p, idx) => (
-                      <div key={idx} className="polaroid" style={{ width: '150px', transform: `rotate(${idx % 2 === 0 ? '-2.5deg' : '3deg'})` }}>
-                        <div className="washi-tape" style={{ width: '50px', height: '14px' }} />
-                        <img src={typeof p === 'string' ? p : p.url} alt="Polaroid" className="polaroid-img" style={{ height: '110px' }} />
-                        <div className="polaroid-caption" style={{ fontSize: '14px' }}>
-                          {(typeof p === 'object' && p.caption) || 'Kỷ niệm của hai đứa ✨'}
+                      <div key={idx} className="polaroid" style={{ width: '130px', transform: `rotate(${idx % 2 === 0 ? '-2.5deg' : '3deg'})` }}>
+                        <div className="washi-tape" style={{ width: '40px', height: '12px' }} />
+                        <img src={typeof p === 'string' ? p : p.url} alt="Polaroid" className="polaroid-img" style={{ height: '95px' }} />
+                        <div className="polaroid-caption" style={{ fontSize: '12px' }}>
+                          {(typeof p === 'object' && p.caption) || 'Kỷ niệm ✨'}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+
+              {/* DRAGGABLE & RESIZABLE STICKERS / ANIMATED GIFS */}
+              {letterStickers.map(stk => {
+                const isSelected = selectedStickerId === stk.id;
+                return (
+                  <div
+                    key={stk.id}
+                    className={`canvas-interactive-item ${isSelected ? 'is-selected' : ''}`}
+                    style={{
+                      left: `${stk.x}%`,
+                      top: `${stk.y}%`,
+                      transform: `scale(${stk.scale || 1}) rotate(${stk.rotation || 0}deg)`,
+                      transformOrigin: 'center center',
+                      zIndex: isSelected ? 40 : 15
+                    }}
+                    onMouseDown={(e) => handlePointerDown(e, stk)}
+                    onTouchStart={(e) => handlePointerDown(e, stk)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedStickerId(stk.id);
+                    }}
+                  >
+                    {/* Controls popup when item is selected */}
+                    {isSelected && (
+                      <div className="canvas-item-controls" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className="canvas-ctrl-btn"
+                          title="Phóng to"
+                          onClick={() => handleAdjustSticker(stk.id, 'scale', 0.15)}
+                        >
+                          <ZoomIn size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="canvas-ctrl-btn"
+                          title="Thu nhỏ"
+                          onClick={() => handleAdjustSticker(stk.id, 'scale', -0.15)}
+                        >
+                          <ZoomOut size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="canvas-ctrl-btn"
+                          title="Xoay nghiêng"
+                          onClick={() => handleAdjustSticker(stk.id, 'rotation', 15)}
+                        >
+                          <RotateCw size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="canvas-ctrl-btn danger"
+                          title="Xóa sticker này"
+                          onClick={() => handleRemoveSticker(stk.id)}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
+
+                    <img
+                      src={stk.url}
+                      alt="sticker"
+                      draggable={false}
+                      style={{
+                        width: '46px',
+                        height: '46px',
+                        objectFit: 'contain',
+                        pointerEvents: 'none',
+                        filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.18))'
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Actions in Preview Tab */}
+            {/* STICKER & GIF DRAWER: Click to Add directly onto Canvas */}
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '16px',
+              padding: '14px 18px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-ink)' }}>
+                    Thư Viện Sticker & GIF Động:
+                  </span>
+                  <div style={{ display: 'flex', gap: '4px', background: '#f0ece4', padding: '2px', borderRadius: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStickerTab('classic')}
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: selectedStickerTab === 'classic' ? '#fff' : 'transparent',
+                        color: selectedStickerTab === 'classic' ? 'var(--rose-primary)' : 'var(--text-muted)',
+                        fontSize: '11.5px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Sticker Đẹp
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStickerTab('animated')}
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: selectedStickerTab === 'animated' ? '#fff' : 'transparent',
+                        color: selectedStickerTab === 'animated' ? 'var(--rose-primary)' : 'var(--text-muted)',
+                        fontSize: '11.5px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      GIF Động ✨
+                    </button>
+                  </div>
+                </div>
+
+                {/* Upload Any GIF / Image */}
+                <label style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  background: 'var(--rose-light)',
+                  color: 'var(--rose-primary)',
+                  padding: '5px 12px',
+                  borderRadius: '10px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer'
+                }}>
+                  <Upload size={13} />
+                  <span>Tải GIF / Ảnh từ máy</span>
+                  <input type="file" accept="image/*,.gif" onChange={handleCustomStickerUpload} style={{ display: 'none' }} />
+                </label>
+              </div>
+
+              {/* Items row */}
+              <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '6px 2px' }}>
+                {(selectedStickerTab === 'classic' ? DEFAULT_STICKERS : ANIMATED_STICKERS).map(stk => (
+                  <button
+                    key={stk.id}
+                    type="button"
+                    onClick={() => handleAddSticker(stk.url)}
+                    title={`Thêm ${stk.name} vào canvas`}
+                    style={{
+                      background: '#faf6ee',
+                      border: '1px solid #ebd9c8',
+                      borderRadius: '10px',
+                      padding: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px',
+                      minWidth: '58px',
+                      transition: 'transform 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <img src={stk.url} alt={stk.name} style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap', maxWidth: '54px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {stk.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom Actions for Canvas Tab */}
             <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 type="button"
@@ -1081,7 +1458,233 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                   gap: '6px'
                 }}
               >
-                <Edit3 size={15} /> Quay Lại Chỉnh Sửa
+                <Edit3 size={15} /> 1. Quay Lại Soạn Lời
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('envelope')}
+                style={{
+                  flex: 1.2,
+                  background: '#fff',
+                  color: 'var(--rose-primary)',
+                  border: '1px solid var(--rose-primary)',
+                  borderRadius: '14px',
+                  padding: '13px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Mail size={16} /> 3. Sang Tùy Chỉnh Phong Bì & Tem 💌
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSave('sent')}
+                disabled={loading}
+                style={{
+                  flex: 1.2,
+                  background: 'var(--rose-primary)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '14px',
+                  padding: '13px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(224, 109, 126, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Send size={16} />
+                <span>{loading ? 'Đang gửi...' : 'Gửi Thư Ngay 💌'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ================= TAB 3: PHONG BÌ & TEM THƯ (OUTER ENVELOPE & STAMPS) ================= */}
+        {activeTab === 'envelope' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Live 3D Envelope Preview */}
+            <div style={{
+              background: '#f8f4ec',
+              border: '1px solid #ebd9c8',
+              borderRadius: '20px',
+              padding: '40px 20px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}>
+              <div className={`craft-envelope-container env-${envelopeColor}`} style={{ maxWidth: '440px' }}>
+                <div className={`craft-envelope-pocket env-${envelopeColor}`} style={{ minHeight: '260px' }}>
+                  {/* Top Flap */}
+                  <div className="craft-envelope-top-flap">
+                    <div style={{ position: 'absolute', bottom: '-24px', zIndex: 25 }}>
+                      <div className="heart-clasp-btn" style={{ width: '48px', height: '48px' }}>
+                        <Heart size={24} color="#fff" fill="#fff" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Fold */}
+                  <div className="craft-envelope-bottom-fold" />
+
+                  {/* Stamp at Top Right */}
+                  <div style={{ position: 'absolute', top: '16px', right: '22px', transform: 'rotate(5deg)', zIndex: 10 }}>
+                    <PostageStamp
+                      design={stampDesign}
+                      imageUrl={stampImage}
+                      cost={openHeartCost}
+                      size="md"
+                      showPostmark={true}
+                    />
+                  </div>
+
+                  {/* Envelope Front Details */}
+                  <div style={{ padding: '90px 24px 20px 24px', textAlign: 'center', position: 'relative', zIndex: 8 }}>
+                    <div style={{ fontFamily: 'var(--font-handwriting)', fontSize: '28px', color: '#fff', textShadow: '0 2px 6px rgba(0,0,0,0.25)', lineHeight: 1.2 }}>
+                      {title || 'Thư Gửi Người Thương'}
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13px', marginTop: '6px', fontWeight: '600' }}>
+                      Gửi đến: <strong style={{ color: '#fff' }}>{partner.display_name}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Customizer Controls: 1. Envelope Colors, 2. Postage Stamps */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              {/* Envelope Color Chooser */}
+              <div style={{
+                background: '#ffffff',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '16px',
+                padding: '16px'
+              }}>
+                <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-ink)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Mail size={15} color="var(--rose-primary)" />
+                  <span>Màu sắc & Chất liệu phong bì ngoài:</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
+                  {ENVELOPE_THEMES.map(theme => (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => setEnvelopeColor(theme.id)}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: envelopeColor === theme.id ? '2px solid var(--rose-primary)' : '1px solid #e0d8cc',
+                        background: envelopeColor === theme.id ? 'var(--rose-light)' : '#faf7f2',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: theme.colorHex, flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                      <div style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--text-ink)', lineHeight: 1.2 }}>
+                        {theme.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Postage Stamp Chooser */}
+              <div style={{
+                background: '#ffffff',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '16px',
+                padding: '16px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>Bộ Sưu Tập Tem Thư Cổ Điển:</span>
+                  </span>
+                  {/* Photo Stamp Upload Button */}
+                  <label style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: stampDesign === 'custom' ? 'var(--rose-light)' : '#f5ede0',
+                    color: 'var(--rose-primary)',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    fontSize: '11.5px',
+                    fontWeight: '700',
+                    cursor: 'pointer'
+                  }}>
+                    <Upload size={12} />
+                    <span>{stampImage ? 'Đổi ảnh tem đôi' : 'Tạo tem từ ảnh đôi 📸'}</span>
+                    <input type="file" accept="image/*" onChange={handleStampPhotoUpload} style={{ display: 'none' }} />
+                  </label>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))', gap: '8px' }}>
+                  {STAMP_DESIGNS.filter(s => s.id !== 'custom').map(stamp => (
+                    <button
+                      key={stamp.id}
+                      type="button"
+                      onClick={() => {
+                        setStampDesign(stamp.id);
+                        setStampImage(null);
+                      }}
+                      style={{
+                        padding: '6px 4px',
+                        borderRadius: '10px',
+                        border: (stampDesign === stamp.id && !stampImage) ? '2px solid var(--rose-primary)' : '1px solid #ebd9c8',
+                        background: (stampDesign === stamp.id && !stampImage) ? 'var(--rose-light)' : '#faf7f2',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}
+                    >
+                      <span style={{ fontSize: '20px' }}>{stamp.icon}</span>
+                      <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-ink)', whiteSpace: 'nowrap' }}>
+                        {stamp.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Actions from Tab 3 */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab('decor')}
+                style={{
+                  flex: 1,
+                  background: '#f2ede4',
+                  color: 'var(--text-ink)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '14px',
+                  padding: '13px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Sparkles size={15} /> 2. Quay Lại Trang Trí Canvas
               </button>
 
               <button
@@ -1106,7 +1709,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
                 }}
               >
                 <Send size={16} />
-                <span>{loading ? 'Đang gửi...' : 'Gửi Ngay Bức Thư Này 💌'}</span>
+                <span>{loading ? 'Đang gửi...' : 'Niêm Phong & Gửi Thư Ngay 💌'}</span>
               </button>
             </div>
           </div>
