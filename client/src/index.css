@@ -285,3 +285,97 @@ button, input, textarea, select {
   color: #16364d;
 }
 
+/* Real Craft Heart-Clasp Envelope (Matching User's Photo Reference) */
+.craft-envelope-container {
+  perspective: 1200px;
+  width: 100%;
+  max-width: 490px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.craft-envelope-pocket {
+  position: relative;
+  width: 100%;
+  min-height: 290px;
+  background: linear-gradient(145deg, #b87a8b 0%, #aa6d7f 100%);
+  border-radius: 18px;
+  box-shadow: 0 25px 50px rgba(70, 35, 45, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.25);
+  border: 1px solid #945869;
+  overflow: visible;
+  transition: all 0.5s ease;
+}
+
+.craft-envelope-bottom-fold {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  clip-path: polygon(0 100%, 50% 25%, 100% 100%);
+  background: linear-gradient(180deg, #bb7e8f 0%, #a46779 100%);
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+  z-index: 6;
+  pointer-events: none;
+}
+
+.craft-envelope-top-flap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 62%;
+  background: linear-gradient(180deg, #c48797 0%, #b27385 100%);
+  border-radius: 18px 18px 50% 50% / 18px 18px 85% 85%;
+  transform-origin: top center;
+  transition: transform 0.85s cubic-bezier(0.4, 0, 0.2, 1), z-index 0.3s;
+  z-index: 15;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.craft-envelope-top-flap.is-open {
+  transform: rotateX(180deg);
+  z-index: 2;
+  box-shadow: none;
+}
+
+@keyframes heartClaspPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25)); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 6px 14px rgba(255, 180, 200, 0.5)); }
+}
+
+.heart-clasp-btn {
+  width: 52px;
+  height: 52px;
+  background: #a36173;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25), inset 0 2px 3px rgba(255,255,255,0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s;
+  animation: heartClaspPulse 2.2s infinite ease-in-out;
+  z-index: 25;
+  border: 2px solid rgba(255,255,255,0.35);
+}
+
+.heart-clasp-btn:hover {
+  transform: scale(1.18);
+  background: #b86e82;
+}
+
+@keyframes letterCardSlideOut {
+  0% { transform: translateY(0); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateY(-75px); opacity: 1; }
+}
+
+.letter-sheet-card {
+  animation: letterCardSlideOut 0.8s 0.2s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+
