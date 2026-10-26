@@ -23,6 +23,7 @@ export default function App() {
 
   // Modals
   const [showWriter, setShowWriter] = useState(false);
+  const [letterToEdit, setLetterToEdit] = useState(null);
   const [unlockingLetter, setUnlockingLetter] = useState(null);
   const [readingLetter, setReadingLetter] = useState(null);
   const [showGiftModal, setShowGiftModal] = useState(false);
@@ -111,6 +112,8 @@ export default function App() {
             spawnHearts(12);
           } else if (data.type === 'new_letter') {
             api.getLetters().then(setLetters);
+          } else if (data.type === 'letter_deleted') {
+            setLetters(prev => prev.filter(l => l.id !== data.letter_id));
           } else if (data.type === 'plant_watered') {
             api.getCoupleInfo().then(info => setCouple(info.couple));
           } else if (data.type === 'heart_gift_received') {
@@ -136,7 +139,57 @@ export default function App() {
     }
   };
 
+  const handleOpenWriter = () => {
+    setLetterToEdit(null);
+    setShowWriter(true);
+  };
+
+  const handleEditLetter = (letter) => {
+    setLetterToEdit(letter);
+    setShowWriter(true);
+  };
+
+  const handleDeleteLetter = async (letter) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa lá thư "${letter.title}" không?`)) return;
+    try {
+      await api.deleteLetter(letter.id);
+      setLetters(prev => prev.filter(l => l.id !== letter.id));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleSendDraft = async (letter) => {
+    try {
+      const res = await api.updateLetter(letter.id, { status: 'sent' });
+      setLetters(prev => prev.map(l => l.id === letter.id ? res.letter : l));
+      spawnHearts(15);
+      alert('Đã gửi thư thành công đến người ấy! 💌');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleLetterSaved = (savedLetter) => {
+    setShowWriter(false);
+    setLetterToEdit(null);
+    setLetters(prev => {
+      const idx = prev.findIndex(l => l.id === savedLetter.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = savedLetter;
+        return copy;
+      }
+      return [savedLetter, ...prev];
+    });
+    spawnHearts(8);
+  };
+
   const handleLetterSelect = (letter) => {
+    if (letter.status === 'draft' && letter.sender_id === currentUser.id) {
+      handleEditLetter(letter);
+      return;
+    }
     if (letter.is_opened || letter.sender_id === currentUser.id) {
       setReadingLetter(letter);
     } else {
@@ -238,7 +291,10 @@ export default function App() {
               letters={letters}
               currentUserId={currentUser.id}
               onSelectLetter={handleLetterSelect}
-              onOpenWriter={() => setShowWriter(true)}
+              onOpenWriter={handleOpenWriter}
+              onEditLetter={handleEditLetter}
+              onDeleteLetter={handleDeleteLetter}
+              onSendDraft={handleSendDraft}
             />
           </div>
 
@@ -314,11 +370,13 @@ export default function App() {
       {showWriter && (
         <LetterWriterModal
           partner={partner}
-          onClose={() => setShowWriter(false)}
-          onLetterCreated={(newLetter) => {
+          letterToEdit={letterToEdit}
+          existingCategories={Array.from(new Set(letters.map(l => l.mood_tag).filter(Boolean)))}
+          onClose={() => {
             setShowWriter(false);
-            api.getLetters().then(setLetters);
+            setLetterToEdit(null);
           }}
+          onLetterSaved={handleLetterSaved}
         />
       )}
 

@@ -205,12 +205,42 @@ export function createServerApp(dbPath = null) {
         ...req.body
       });
 
-      broadcastToCouple(user.couple_id, 'new_letter', {
-        title: letter.title,
-        sender_id: req.user.id
-      });
+      if (letter.status !== 'draft') {
+        broadcastToCouple(user.couple_id, 'new_letter', {
+          title: letter.title,
+          sender_id: req.user.id
+        });
+      }
 
       res.status(201).json({ letter });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.put('/api/letters/:id', authenticateToken, (req, res) => {
+    try {
+      const letter = letterService.updateLetter(Number(req.params.id), req.user.id, req.body);
+      const user = getDb().prepare('SELECT couple_id FROM users WHERE id = ?').get(req.user.id);
+      if (letter.status === 'sent') {
+        broadcastToCouple(user.couple_id, 'new_letter', {
+          title: letter.title,
+          sender_id: req.user.id
+        });
+      }
+      res.json({ letter });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete('/api/letters/:id', authenticateToken, (req, res) => {
+    try {
+      const result = letterService.deleteLetter(Number(req.params.id), req.user.id);
+      broadcastToCouple(result.couple_id, 'letter_deleted', {
+        letter_id: Number(req.params.id)
+      });
+      res.json(result);
     } catch (e) {
       res.status(400).json({ error: e.message });
     }

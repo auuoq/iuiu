@@ -1,25 +1,50 @@
 import React, { useState } from 'react';
-import { Mail, Clock, Lock, CheckCircle2, Plus, Sparkles } from 'lucide-react';
+import { Mail, Clock, Lock, CheckCircle2, Plus, Sparkles, Edit3, Trash2, Send, Archive } from 'lucide-react';
 
-export function LetterList({ letters, onSelectLetter, onOpenWriter, currentUserId }) {
-  const [filterMood, setFilterMood] = useState('all');
+export function LetterList({ letters, onSelectLetter, onOpenWriter, onEditLetter, onDeleteLetter, onSendDraft, currentUserId }) {
+  const [filterTab, setFilterTab] = useState('all');
+
+  // Extract all custom categories created across non-draft letters
+  const customCategories = Array.from(
+    new Set(letters.filter(l => l.status !== 'draft').map(l => l.mood_tag).filter(Boolean))
+  );
+
+  const draftCount = letters.filter(l => l.status === 'draft' || l.status === 'archived').length;
 
   const filtered = letters.filter(l => {
-    if (filterMood === 'all') return true;
-    if (filterMood === 'opened') return l.is_opened === 1;
-    if (filterMood === 'timelock') return l.time_lock_at && new Date(l.time_lock_at) > new Date();
-    return l.mood_tag === filterMood;
+    if (filterTab === 'all') {
+      return l.status !== 'draft';
+    }
+    if (filterTab === 'drafts') {
+      return l.status === 'draft' || l.status === 'archived';
+    }
+    if (filterTab === 'unopened') {
+      return !l.is_opened && l.status !== 'draft';
+    }
+    if (filterTab === 'opened') {
+      return Boolean(l.is_opened);
+    }
+    if (filterTab.startsWith('cat:')) {
+      const cat = filterTab.replace('cat:', '');
+      return l.mood_tag === cat && l.status !== 'draft';
+    }
+    return true;
   });
 
-  const getMoodBadge = (tag) => {
-    switch (tag) {
-      case 'sad': return { label: 'Mở khi em buồn 🌧️', bg: '#eef2f5', color: '#4a6572' };
-      case 'miss': return { label: 'Mở khi nhớ anh 🥺', bg: '#fdeef2', color: '#b83b5e' };
-      case 'angry': return { label: 'Mở khi mình giận nhau 💔', bg: '#fcf0e8', color: '#c3512f' };
-      case 'secret': return { label: 'Thư bí mật 🤫', bg: '#f3eef8', color: '#6a4c93' };
-      case 'anniversary': return { label: 'Kỷ niệm đặc biệt 🎂', bg: '#fdf7e3', color: '#997300' };
-      default: return { label: 'Thư ngọt ngào ✨', bg: '#fff0f3', color: 'var(--rose-primary)' };
+  const getCategoryColor = (tag) => {
+    const palette = [
+      { bg: '#fdeef2', color: '#b83b5e' },
+      { bg: '#eef2f5', color: '#4a6572' },
+      { bg: '#fdf7e3', color: '#997300' },
+      { bg: '#f3eef8', color: '#6a4c93' },
+      { bg: '#fcf0e8', color: '#c3512f' },
+      { bg: '#eaf5ea', color: '#2e7d32' }
+    ];
+    let hash = 0;
+    for (let i = 0; i < (tag || '').length; i++) {
+      hash = (hash << 5) - hash + tag.charCodeAt(i);
     }
+    return palette[Math.abs(hash) % palette.length];
   };
 
   return (
@@ -43,7 +68,7 @@ export function LetterList({ letters, onSelectLetter, onOpenWriter, currentUserI
           <h2 style={{ fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>Hòm Thư Tình Yêu</span>
             <span style={{ fontSize: '13px', background: 'var(--rose-light)', color: 'var(--rose-primary)', padding: '2px 8px', borderRadius: '12px' }}>
-              {letters.length} thư
+              {letters.filter(l => l.status !== 'draft').length} thư
             </span>
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px' }}>
@@ -78,32 +103,100 @@ export function LetterList({ letters, onSelectLetter, onOpenWriter, currentUserI
 
       {/* Filter Tabs */}
       <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: '16px' }}>
-        {[
-          { id: 'all', label: 'Tất cả' },
-          { id: 'sad', label: 'Mở khi buồn' },
-          { id: 'miss', label: 'Mở khi nhớ' },
-          { id: 'timelock', label: 'Hẹn giờ ⏳' },
-          { id: 'opened', label: 'Đã mở (Đọc lại) 📖' }
-        ].map(tab => (
+        <button
+          onClick={() => setFilterTab('all')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '20px',
+            border: filterTab === 'all' ? '1px solid var(--rose-primary)' : '1px solid var(--border-subtle)',
+            background: filterTab === 'all' ? 'var(--rose-light)' : '#fff',
+            color: filterTab === 'all' ? 'var(--rose-primary)' : 'var(--text-muted)',
+            fontSize: '12.5px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Tất cả
+        </button>
+
+        {/* Dynamic Categories */}
+        {customCategories.map((cat, idx) => (
           <button
-            key={tab.id}
-            onClick={() => setFilterMood(tab.id)}
+            key={idx}
+            onClick={() => setFilterTab(`cat:${cat}`)}
             style={{
               padding: '6px 14px',
               borderRadius: '20px',
-              border: filterMood === tab.id ? '1px solid var(--rose-primary)' : '1px solid var(--border-subtle)',
-              background: filterMood === tab.id ? 'var(--rose-light)' : '#fff',
-              color: filterMood === tab.id ? 'var(--rose-primary)' : 'var(--text-muted)',
+              border: filterTab === `cat:${cat}` ? '1px solid var(--rose-primary)' : '1px solid var(--border-subtle)',
+              background: filterTab === `cat:${cat}` ? 'var(--rose-light)' : '#fff',
+              color: filterTab === `cat:${cat}` ? 'var(--rose-primary)' : 'var(--text-muted)',
               fontSize: '12.5px',
               fontWeight: '600',
               cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s'
+              whiteSpace: 'nowrap'
             }}
           >
-            {tab.label}
+            {cat}
           </button>
         ))}
+
+        <button
+          onClick={() => setFilterTab('unopened')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '20px',
+            border: filterTab === 'unopened' ? '1px solid var(--rose-primary)' : '1px solid var(--border-subtle)',
+            background: filterTab === 'unopened' ? 'var(--rose-light)' : '#fff',
+            color: filterTab === 'unopened' ? 'var(--rose-primary)' : 'var(--text-muted)',
+            fontSize: '12.5px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Chưa mở 🔒
+        </button>
+
+        <button
+          onClick={() => setFilterTab('opened')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '20px',
+            border: filterTab === 'opened' ? '1px solid var(--rose-primary)' : '1px solid var(--border-subtle)',
+            background: filterTab === 'opened' ? 'var(--rose-light)' : '#fff',
+            color: filterTab === 'opened' ? 'var(--rose-primary)' : 'var(--text-muted)',
+            fontSize: '12.5px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Đã mở (Đọc lại) 📖
+        </button>
+
+        {draftCount > 0 && (
+          <button
+            onClick={() => setFilterTab('drafts')}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '20px',
+              border: filterTab === 'drafts' ? '1px solid #d97706' : '1px solid #fde68a',
+              background: filterTab === 'drafts' ? '#fef3c7' : '#fff',
+              color: '#b45309',
+              fontSize: '12.5px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+          >
+            <Archive size={13} />
+            <span>Kho Lưu Trữ / Bản Nháp ({draftCount})</span>
+          </button>
+        )}
       </div>
 
       {/* Letter Items */}
@@ -123,18 +216,19 @@ export function LetterList({ letters, onSelectLetter, onOpenWriter, currentUserI
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {filtered.map(letter => {
-            const mood = getMoodBadge(letter.mood_tag);
+            const moodStyle = getCategoryColor(letter.mood_tag);
             const isLockedTime = letter.time_lock_at && new Date(letter.time_lock_at) > new Date();
             const isOpened = Boolean(letter.is_opened);
             const isMine = letter.sender_id === currentUserId;
+            const isDraft = letter.status === 'draft';
 
             return (
               <div
                 key={letter.id}
                 onClick={() => onSelectLetter(letter)}
                 style={{
-                  background: isOpened ? '#faf8f5' : '#fff',
-                  border: '1px solid var(--border-subtle)',
+                  background: isDraft ? '#fffdf7' : (isOpened ? '#faf8f5' : '#fff'),
+                  border: isDraft ? '1px dashed #f59e0b' : '1px solid var(--border-subtle)',
                   borderRadius: '16px',
                   padding: '16px',
                   display: 'flex',
@@ -150,7 +244,7 @@ export function LetterList({ letters, onSelectLetter, onOpenWriter, currentUserI
                   e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                  e.currentTarget.style.borderColor = isDraft ? '#f59e0b' : 'var(--border-subtle)';
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.boxShadow = 'none';
                 }}
@@ -159,10 +253,10 @@ export function LetterList({ letters, onSelectLetter, onOpenWriter, currentUserI
                 <div 
                   className="wax-seal"
                   style={{
-                    background: isOpened ? '#748c94' : (isLockedTime ? '#d4a373' : undefined)
+                    background: isDraft ? '#d97706' : (isOpened ? '#748c94' : (isLockedTime ? '#d4a373' : undefined))
                   }}
                 >
-                  {isOpened ? '📖' : (isLockedTime ? '⏳' : '❤️')}
+                  {isDraft ? '📂' : (isOpened ? '📖' : (isLockedTime ? '⏳' : '❤️'))}
                 </div>
 
                 {/* Letter Content Meta */}
@@ -173,12 +267,17 @@ export function LetterList({ letters, onSelectLetter, onOpenWriter, currentUserI
                       fontWeight: '700',
                       padding: '2px 8px',
                       borderRadius: '6px',
-                      background: mood.bg,
-                      color: mood.color
+                      background: moodStyle.bg,
+                      color: moodStyle.color
                     }}>
-                      {mood.label}
+                      {letter.mood_tag || 'Thư mới'}
                     </span>
-                    {isLockedTime && (
+                    {isDraft && (
+                      <span style={{ fontSize: '11px', color: '#b45309', background: '#fef3c7', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>
+                        📂 Bản nháp (Chưa gửi)
+                      </span>
+                    )}
+                    {isLockedTime && !isDraft && (
                       <span style={{ fontSize: '11px', color: '#b07d48', background: '#fdf6ed', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
                         ⏳ Hẹn giờ: {new Date(letter.time_lock_at).toLocaleDateString('vi-VN')}
                       </span>
@@ -203,8 +302,12 @@ export function LetterList({ letters, onSelectLetter, onOpenWriter, currentUserI
 
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '12px' }}>
                     <span>Từ: <strong>{isMine ? 'Bạn' : letter.sender_name}</strong></span>
-                    <span>•</span>
-                    <span>Phí mở: <strong>{letter.open_heart_cost} ❤️</strong></span>
+                    {!isDraft && (
+                      <>
+                        <span>•</span>
+                        <span>Phí mở: <strong>{letter.open_heart_cost} ❤️</strong></span>
+                      </>
+                    )}
                     {isOpened && (
                       <>
                         <span>•</span>
@@ -214,9 +317,86 @@ export function LetterList({ letters, onSelectLetter, onOpenWriter, currentUserI
                   </div>
                 </div>
 
-                {/* Status indicator icon */}
-                <div style={{ color: isOpened ? '#2e7d32' : 'var(--text-light)', paddingRight: '4px' }}>
-                  {isOpened ? <CheckCircle2 size={20} /> : (isLockedTime ? <Clock size={20} /> : <Lock size={20} />)}
+                {/* Actions for letter sender */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {isMine && isDraft && onSendDraft && (
+                    <button
+                      type="button"
+                      title="Gửi lá thư này ngay"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSendDraft(letter);
+                      }}
+                      style={{
+                        background: 'var(--rose-primary)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '6px 10px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Send size={13} /> Gửi ngay
+                    </button>
+                  )}
+
+                  {isMine && !isOpened && onEditLetter && (
+                    <button
+                      type="button"
+                      title="Chỉnh sửa lá thư"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditLetter(letter);
+                      }}
+                      style={{
+                        background: '#f4ece1',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '8px',
+                        padding: '6px 8px',
+                        color: 'var(--text-ink)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Edit3 size={15} />
+                    </button>
+                  )}
+
+                  {isMine && onDeleteLetter && (
+                    <button
+                      type="button"
+                      title="Xóa lá thư"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteLetter(letter);
+                      }}
+                      style={{
+                        background: '#fff0f3',
+                        border: '1px solid #ffd1dc',
+                        borderRadius: '8px',
+                        padding: '6px 8px',
+                        color: '#c94a5a',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+
+                  {/* Status indicator icon if not sender action */}
+                  {!isMine && (
+                    <div style={{ color: isOpened ? '#2e7d32' : 'var(--text-light)', paddingRight: '4px' }}>
+                      {isOpened ? <CheckCircle2 size={20} /> : (isLockedTime ? <Clock size={20} /> : <Lock size={20} />)}
+                    </div>
+                  )}
                 </div>
               </div>
             );

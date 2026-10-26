@@ -85,10 +85,18 @@ export function initDb(dbPath = null) {
       time_lock_at TEXT,
       is_opened INTEGER DEFAULT 0,
       opened_at TEXT,
+      status TEXT DEFAULT 'sent',
       milestone_id INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  try {
+    const cols = db.prepare("PRAGMA table_info(letters)").all();
+    if (!cols.some(c => c.name === 'status')) {
+      db.exec("ALTER TABLE letters ADD COLUMN status TEXT DEFAULT 'sent'");
+    }
+  } catch (e) {}
 
   // 6. letter_quizzes
   db.exec(`

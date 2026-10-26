@@ -63,6 +63,8 @@ export const api = {
   getLetters: () => request('/letters'),
   getLetterDetail: (id) => request(`/letters/${id}`),
   createLetter: (body) => request('/letters', { method: 'POST', body: JSON.stringify(body) }),
+  updateLetter: (id, body) => request(`/letters/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteLetter: (id) => request(`/letters/${id}`, { method: 'DELETE' }),
   unlockLetter: (id, body) => request(`/letters/${id}/unlock`, { method: 'POST', body: JSON.stringify(body) }),
 
   // Milestones

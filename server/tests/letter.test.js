@@ -5,6 +5,8 @@ import { getBalance } from '../src/services/heartService.js';
 import { normalizeAnswer } from '../src/utils/quizNormalizer.js';
 import { 
   createLetter, 
+  updateLetter,
+  deleteLetter,
   getLettersForCouple, 
   getLetterDetail, 
   verifyQuizOrBypass 
@@ -144,5 +146,54 @@ describe('Letter Service & Unlock Pipeline', () => {
 
     expect(() => getLetterDetail(letter.id, u2.user.id))
       .toThrow(/Lá thư này chưa được mở khóa/);
+  });
+
+  it('supports draft letters visible only to sender, then sending, editing, and deleting', () => {
+    // 1. Sender creates draft letter
+    const draft = createLetter({
+      couple_id: couple.id,
+      sender_id: u1.user.id,
+      receiver_id: u2.user.id,
+      title: 'Bản thảo chưa gửi',
+      mood_tag: 'Mở khi đi xa',
+      content: 'Nội dung nháp...',
+      status: 'draft'
+    });
+    expect(draft.status).toBe('draft');
+
+    // Receiver should NOT see draft
+    const u2Letters = getLettersForCouple(couple.id, u2.user.id);
+    expect(u2Letters.some(l => l.id === draft.id)).toBe(false);
+
+    // Sender CAN see draft
+    const u1Letters = getLettersForCouple(couple.id, u1.user.id);
+    expect(u1Letters.some(l => l.id === draft.id)).toBe(true);
+
+    // 2. Sender edits draft
+    const updated = updateLetter(draft.id, u1.user.id, {
+      title: 'Thư đã hoàn thiện',
+      content: 'Nội dung chính thức!',
+      status: 'sent'
+    });
+    expect(updated.title).toBe('Thư đã hoàn thiện');
+    expect(updated.status).toBe('sent');
+
+    // Receiver can now see it
+    const u2LettersAfterSend = getLettersForCouple(couple.id, u2.user.id);
+    expect(u2LettersAfterSend.some(l => l.id === draft.id)).toBe(true);
+
+    // 3. Receiver opens letter
+    verifyQuizOrBypass(draft.id, u2.user.id, {});
+
+    // 4. Sender tries to edit after letter is opened -> should fail!
+    expect(() => updateLetter(draft.id, u1.user.id, { title: 'Sửa sau khi đọc' }))
+      .toThrow(/Không thể chỉnh sửa lá thư đã được người ấy mở đọc/);
+
+    // 5. Sender deletes letter
+    const delRes = deleteLetter(draft.id, u1.user.id);
+    expect(delRes.success).toBe(true);
+
+    const lettersAfterDel = getLettersForCouple(couple.id, u1.user.id);
+    expect(lettersAfterDel.some(l => l.id === draft.id)).toBe(false);
   });
 });

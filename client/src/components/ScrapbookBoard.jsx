@@ -1,45 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client.js';
-import { StickerDrawer } from './StickerDrawer.jsx';
-import { ImagePlus, Trash2, Edit3, Sparkles } from 'lucide-react';
+import { StickerDrawer, DEFAULT_STICKERS } from './StickerDrawer.jsx';
+import { ImagePlus, Trash2, Edit3, Sparkles, Move } from 'lucide-react';
 
 export function ScrapbookBoard({ coupleId }) {
-  // Persist photos and board stickers in localStorage for the couple
   const storageKey = `lovecapsule_board_${coupleId || 'default'}`;
+  const boardRef = useRef(null);
+
+  const defaultPhotos = [
+    {
+      id: 'sample-1',
+      url: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=500&auto=format&fit=crop&q=80',
+      caption: 'Lần đầu đi cà phê cùng nhau ☕',
+      x: 30,
+      y: 40,
+      rotation: -4,
+      tapeStyle: 'pink',
+      zIndex: 2
+    },
+    {
+      id: 'sample-2',
+      url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop&q=80',
+      caption: 'Chuyến đi biển đáng nhớ 🌊',
+      x: 260,
+      y: 60,
+      rotation: 5,
+      tapeStyle: 'mint',
+      zIndex: 3
+    }
+  ];
+
+  const defaultStickers = [
+    { id: 'stk-1', url: DEFAULT_STICKERS[0].url, x: 220, y: 20, zIndex: 10 },
+    { id: 'stk-2', url: DEFAULT_STICKERS[1].url, x: 60, y: 320, zIndex: 10 }
+  ];
 
   const [photos, setPhotos] = useState(() => {
     const saved = localStorage.getItem(`${storageKey}_photos`);
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.map((p, idx) => ({
+          ...p,
+          x: typeof p.x === 'number' ? p.x : 30 + (idx % 2) * 230,
+          y: typeof p.y === 'number' ? p.y : 40 + (idx % 2) * 50,
+          zIndex: p.zIndex || idx + 2
+        }));
+      } catch (e) {}
     }
-    // Default sweet starter photos if brand new
-    return [
-      {
-        id: 'sample-1',
-        url: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=500&auto=format&fit=crop&q=80',
-        caption: 'Lần đầu đi cà phê cùng nhau ☕',
-        rotation: -4,
-        tapeStyle: 'pink'
-      },
-      {
-        id: 'sample-2',
-        url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop&q=80',
-        caption: 'Chuyến đi biển đáng nhớ 🌊',
-        rotation: 5,
-        tapeStyle: 'mint'
-      }
-    ];
+    return defaultPhotos;
   });
 
   const [stickers, setStickers] = useState(() => {
     const saved = localStorage.getItem(`${storageKey}_stickers`);
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.map((s, idx) => ({
+          ...s,
+          // Replace any old broken external iconify URLs with local crisp SVG
+          url: s.url && s.url.includes('api.iconify.design')
+            ? DEFAULT_STICKERS[idx % DEFAULT_STICKERS.length].url
+            : (s.url || DEFAULT_STICKERS[0].url),
+          x: typeof s.x === 'number' ? s.x : 100 + (idx % 3) * 90,
+          y: typeof s.y === 'number' ? s.y : 30 + (idx % 3) * 80,
+          zIndex: s.zIndex || 15 + idx
+        }));
+      } catch (e) {}
     }
-    return [
-      { id: 'stk-1', url: 'https://api.iconify.design/fluent-emoji:sparkling-heart.svg', top: '20px', right: '30px' },
-      { id: 'stk-2', url: 'https://api.iconify.design/noto:cherry-blossom.svg', bottom: '25px', left: '30px' }
-    ];
+    return defaultStickers;
   });
 
   const [customStickerList, setCustomStickerList] = useState(() => {
@@ -48,6 +77,8 @@ export function ScrapbookBoard({ coupleId }) {
   });
 
   const [uploading, setUploading] = useState(false);
+  const [maxZ, setMaxZ] = useState(25);
+  const [dragItem, setDragItem] = useState(null);
 
   useEffect(() => {
     localStorage.setItem(`${storageKey}_photos`, JSON.stringify(photos));
@@ -61,18 +92,72 @@ export function ScrapbookBoard({ coupleId }) {
     localStorage.setItem(`${storageKey}_custom_stickers`, JSON.stringify(customStickerList));
   }, [customStickerList, storageKey]);
 
+  // Drag & drop pointer handlers
+  const handlePointerDown = (e, type, id, currentX, currentY) => {
+    if (e.target.closest('button') || e.target.closest('input')) return;
+    e.stopPropagation();
+
+    const nextZ = maxZ + 1;
+    setMaxZ(nextZ);
+
+    if (type === 'photo') {
+      setPhotos(prev => prev.map(p => p.id === id ? { ...p, zIndex: nextZ } : p));
+    } else {
+      setStickers(prev => prev.map(s => s.id === id ? { ...s, zIndex: nextZ } : s));
+    }
+
+    setDragItem({
+      type,
+      id,
+      startPointerX: e.clientX,
+      startPointerY: e.clientY,
+      origX: currentX,
+      origY: currentY
+    });
+
+    if (e.currentTarget.setPointerCapture) {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+  };
+
+  const handlePointerMove = (e) => {
+    if (!dragItem) return;
+    const dx = e.clientX - dragItem.startPointerX;
+    const dy = e.clientY - dragItem.startPointerY;
+    const newX = Math.max(10, dragItem.origX + dx);
+    const newY = Math.max(10, dragItem.origY + dy);
+
+    if (dragItem.type === 'photo') {
+      setPhotos(prev => prev.map(p => p.id === dragItem.id ? { ...p, x: newX, y: newY } : p));
+    } else {
+      setStickers(prev => prev.map(s => s.id === dragItem.id ? { ...s, x: newX, y: newY } : s));
+    }
+  };
+
+  const handlePointerUp = (e) => {
+    if (dragItem && e.currentTarget && e.currentTarget.releasePointerCapture) {
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+    }
+    setDragItem(null);
+  };
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
     try {
       const res = await api.uploadFile(file);
+      const nextZ = maxZ + 1;
+      setMaxZ(nextZ);
       const newPhoto = {
         id: `photo-${Date.now()}`,
         url: res.url,
         caption: 'Kỷ niệm mới của hai bạn 📸',
+        x: Math.floor(Math.random() * 80 + 80),
+        y: Math.floor(Math.random() * 80 + 80),
         rotation: (Math.random() * 10 - 5).toFixed(1),
-        tapeStyle: Math.random() > 0.5 ? 'pink' : 'yellow'
+        tapeStyle: Math.random() > 0.5 ? 'pink' : 'yellow',
+        zIndex: nextZ
       };
       setPhotos([...photos, newPhoto]);
     } catch (err) {
@@ -97,11 +182,14 @@ export function ScrapbookBoard({ coupleId }) {
   };
 
   const handleAddSticker = (sticker) => {
+    const nextZ = maxZ + 1;
+    setMaxZ(nextZ);
     const newStk = {
       id: `board-stk-${Date.now()}`,
       url: sticker.url,
-      top: `${Math.floor(Math.random() * 60 + 15)}%`,
-      left: `${Math.floor(Math.random() * 70 + 15)}%`
+      x: Math.floor(Math.random() * 120 + 100),
+      y: Math.floor(Math.random() * 120 + 80),
+      zIndex: nextZ
     };
     setStickers([...stickers, newStk]);
   };
@@ -123,7 +211,7 @@ export function ScrapbookBoard({ coupleId }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: '20px',
+        marginBottom: '16px',
         flexWrap: 'wrap',
         gap: '12px'
       }}>
@@ -133,7 +221,7 @@ export function ScrapbookBoard({ coupleId }) {
             <span style={{ fontSize: '14px' }}>📌</span>
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px' }}>
-            Dán ảnh thật, viết ghi chú và gắn sticker do chính hai bạn lựa chọn
+            Kéo thả ảnh và sticker tự do để sắp xếp theo ý thích của hai bạn
           </p>
         </div>
 
@@ -157,118 +245,210 @@ export function ScrapbookBoard({ coupleId }) {
         </label>
       </div>
 
-      {/* Scrapbook Board Area */}
-      <div style={{
-        background: '#fffdf9',
-        border: '2px dashed #ded2c6',
-        borderRadius: '18px',
-        minHeight: '360px',
-        padding: '30px 20px',
-        position: 'relative',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '24px',
-        justifyContent: 'center',
-        alignItems: 'center',
-        overflow: 'hidden'
-      }}>
-        {/* Floating Board Stickers */}
+      {/* Scrapbook Board Free Drag Area */}
+      <div
+        ref={boardRef}
+        style={{
+          background: '#fffdf9',
+          backgroundImage: 'radial-gradient(#eedccb 1px, transparent 1px)',
+          backgroundSize: '20px 20px',
+          border: '2px dashed #ded2c6',
+          borderRadius: '18px',
+          height: '480px',
+          position: 'relative',
+          overflow: 'hidden',
+          userSelect: 'none',
+          touchAction: 'none'
+        }}
+      >
+        {/* Subtle helper instruction */}
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          left: '12px',
+          background: 'rgba(255, 255, 255, 0.85)',
+          backdropFilter: 'blur(4px)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '20px',
+          padding: '4px 12px',
+          fontSize: '11.5px',
+          color: 'var(--text-muted)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+          pointerEvents: 'none',
+          zIndex: 1
+        }}>
+          <Move size={12} color="var(--rose-primary)" />
+          <span>Nhấn giữ và kéo thả ảnh hoặc sticker để di chuyển tự do</span>
+        </div>
+
+        {/* Draggable Stickers */}
         {stickers.map(stk => (
-          <img
+          <div
             key={stk.id}
-            src={stk.url}
-            alt="sticker"
-            title="Nhấp đúp để gỡ sticker"
+            onPointerDown={(e) => handlePointerDown(e, 'sticker', stk.id, stk.x, stk.y)}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            title="Nhấp đúp để gỡ sticker hoặc kéo thả di chuyển"
             onDoubleClick={() => handleRemoveSticker(stk.id)}
             style={{
               position: 'absolute',
-              top: stk.top,
-              left: stk.left,
-              right: stk.right,
-              bottom: stk.bottom,
-              width: '50px',
-              height: '50px',
-              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))',
-              cursor: 'pointer',
-              userSelect: 'none',
-              zIndex: 5
+              left: `${stk.x}px`,
+              top: `${stk.y}px`,
+              zIndex: stk.zIndex || 10,
+              cursor: dragItem?.id === stk.id ? 'grabbing' : 'grab',
+              transform: dragItem?.id === stk.id ? 'scale(1.15)' : 'scale(1)',
+              transition: dragItem?.id === stk.id ? 'none' : 'transform 0.15s ease',
+              touchAction: 'none'
             }}
-          />
+          >
+            <img
+              src={stk.url}
+              alt="sticker"
+              draggable={false}
+              style={{
+                width: '46px',
+                height: '46px',
+                filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.18))',
+                pointerEvents: 'none',
+                display: 'block'
+              }}
+            />
+          </div>
         ))}
 
-        {/* Polaroid Photos */}
+        {/* Draggable Polaroid Photos */}
         {photos.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+            pointerEvents: 'none'
+          }}>
             <div style={{ fontSize: '32px', marginBottom: '8px' }}>📷</div>
-            <div style={{ fontWeight: '700' }}>Bảng kỷ niệm đang trống</div>
-            <div style={{ fontSize: '13px', marginTop: '4px' }}>Bấm nút "+ Thêm Ảnh Thật" phía trên để lưu giữ kỷ niệm đầu tiên nhé!</div>
+            <div style={{ fontWeight: '700', fontSize: '14px' }}>Bảng kỷ niệm chưa có ảnh nào</div>
+            <div style={{ fontSize: '12.5px', marginTop: '4px' }}>Bấm nút "+ Thêm Ảnh Thật" ở góc trên để dán ảnh nhé!</div>
           </div>
         ) : (
-          photos.map(p => (
-            <div
-              key={p.id}
-              className="polaroid"
-              style={{
-                width: '180px',
-                transform: `rotate(${p.rotation || 0}deg)`,
-                zIndex: 2
-              }}
-            >
-              <div 
-                className={`washi-tape ${p.tapeStyle === 'mint' ? 'washi-tape-mint' : (p.tapeStyle === 'yellow' ? 'washi-tape-yellow' : '')}`}
-              ></div>
-              <img src={p.url} alt="memory" className="polaroid-img" />
-              <div className="polaroid-caption" title={p.caption}>
-                {p.caption}
-              </div>
-
-              {/* Action buttons on hover */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: '8px',
-                marginTop: '8px'
-              }}>
-                <button
-                  onClick={() => handleEditCaption(p.id)}
-                  title="Sửa chú thích"
+          photos.map(photo => {
+            const isDraggingThis = dragItem?.id === photo.id;
+            return (
+              <div
+                key={photo.id}
+                onPointerDown={(e) => handlePointerDown(e, 'photo', photo.id, photo.x, photo.y)}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                style={{
+                  position: 'absolute',
+                  left: `${photo.x}px`,
+                  top: `${photo.y}px`,
+                  zIndex: photo.zIndex || 2,
+                  cursor: isDraggingThis ? 'grabbing' : 'grab',
+                  transform: isDraggingThis
+                    ? `scale(1.04) rotate(${photo.rotation}deg)`
+                    : `rotate(${photo.rotation}deg)`,
+                  transition: isDraggingThis ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.15s',
+                  touchAction: 'none'
+                }}
+              >
+                <div
+                  className="polaroid"
                   style={{
-                    background: '#f4ede4',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '3px 6px',
-                    fontSize: '11px',
-                    color: '#666',
-                    cursor: 'pointer',
+                    width: '190px',
+                    margin: 0,
+                    boxShadow: isDraggingThis ? '0 15px 30px rgba(0,0,0,0.22)' : 'var(--shadow-warm)'
+                  }}
+                >
+                  {/* Washi Tape at Top */}
+                  <div
+                    className="washi-tape"
+                    style={{
+                      width: '60px',
+                      height: '18px',
+                      background: photo.tapeStyle === 'pink' ? 'var(--tape-pink)' : (photo.tapeStyle === 'mint' ? 'var(--tape-mint)' : 'var(--tape-yellow)')
+                    }}
+                  />
+
+                  <img
+                    src={photo.url}
+                    alt={photo.caption}
+                    className="polaroid-img"
+                    draggable={false}
+                    style={{ pointerEvents: 'none' }}
+                  />
+
+                  <div className="polaroid-caption" style={{ minHeight: '32px' }}>
+                    {photo.caption}
+                  </div>
+
+                  {/* Actions Bar */}
+                  <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '2px'
-                  }}
-                >
-                  <Edit3 size={11} /> Sửa chữ
-                </button>
-                <button
-                  onClick={() => handleDeletePhoto(p.id)}
-                  title="Gỡ ảnh"
-                  style={{
-                    background: '#ffebee',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '3px 6px',
-                    fontSize: '11px',
-                    color: '#c62828',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Trash2 size={11} />
-                </button>
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginTop: '8px',
+                    paddingTop: '6px',
+                    borderTop: '1px dashed #eee'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditCaption(photo.id);
+                      }}
+                      style={{
+                        background: '#f7efe2',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        color: 'var(--text-ink)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}
+                    >
+                      <Edit3 size={11} /> Sửa chữ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePhoto(photo.id);
+                      }}
+                      style={{
+                        background: '#fff0f3',
+                        border: '1px solid #ffd1dc',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        color: '#c94a5a',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
-      {/* Custom Sticker Drawer */}
+      {/* Bottom Sticker Drawer */}
       <StickerDrawer
         onSelectSticker={handleAddSticker}
         customStickers={customStickerList}

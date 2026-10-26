@@ -3,12 +3,46 @@ import { api } from '../api/client.js';
 import { Plus, Sparkles, Upload } from 'lucide-react';
 
 export const DEFAULT_STICKERS = [
-  { id: 'heart-sparkle', url: 'https://api.iconify.design/fluent-emoji:sparkling-heart.svg', name: 'Trái tim lấp lánh' },
-  { id: 'cherry-blossom', url: 'https://api.iconify.design/noto:cherry-blossom.svg', name: 'Hoa anh đào' },
-  { id: 'cat-smile', url: 'https://api.iconify.design/noto:cat-with-wry-smile.svg', name: 'Mèo cười' },
-  { id: 'paw-prints', url: 'https://api.iconify.design/noto:paw-prints.svg', name: 'Dấu chân mèo' },
-  { id: 'gift-box', url: 'https://api.iconify.design/noto:wrapped-gift.svg', name: 'Hộp quà' },
-  { id: 'ribbon-pink', url: 'https://api.iconify.design/noto:ribbon.svg', name: 'Nơ hồng' }
+  {
+    id: 'heart-sparkle',
+    name: 'Trái tim',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><path fill="%23DD2E44" d="M35.885 11.833c0-5.45-4.418-9.868-9.867-9.868-3.308 0-6.227 1.633-8.018 4.129-1.791-2.496-4.71-4.129-8.017-4.129-5.45 0-9.868 4.417-9.868 9.868 0 .772.098 1.52.266 2.241C1.751 22.587 11.216 31.568 18 34.034c6.783-2.466 16.249-11.447 17.617-19.96.17-.721.268-1.469.268-2.241z"/><circle fill="%23FFF" cx="28" cy="8" r="2.5"/><circle fill="%23FFF" cx="32" cy="13" r="1.5"/></svg>'
+  },
+  {
+    id: 'cherry-blossom',
+    name: 'Hoa anh đào',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><path fill="%23F4ABA6" d="M18 13c-2-4-7-5-9-2s0 8 4 9c0 0-4 1-5 4s2 6 6 5c0 0 0 4 3 5s6-2 6-6c2 4 7 5 9 2s0-8-4-9c0 0 4-1 5-4s-2-6-6-5c0 0 0-4-3-5s-6 2-6 6z"/><circle fill="%23FFCC4D" cx="18" cy="18" r="3.5"/></svg>'
+  },
+  {
+    id: 'cat-smile',
+    name: 'Mèo con',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><path fill="%23F4900C" d="M18 6c-8 0-14 5.5-14 13 0 4.5 2.2 8.5 5.8 11.1L8 34l5.3-2.2c1.5.4 3.1.7 4.7.7 8 0 14-5.5 14-13S26 6 18 6z"/><path fill="%23D96D00" d="M7 6l5 8-7 3zm22 0l-5 8 7 3z"/><circle fill="%23292F33" cx="13" cy="18" r="2"/><circle fill="%23292F33" cx="23" cy="18" r="2"/><ellipse fill="%23DC2F02" cx="18" cy="21" rx="1.5" ry="1"/></svg>'
+  },
+  {
+    id: 'gift-box',
+    name: 'Hộp quà',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><path fill="%23DD2E44" d="M32 14H4c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h28c1.1 0 2 .9 2 2v3c0 1.1-.9 2-2 2z"/><path fill="%23EA596E" d="M30 14H6v18c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V14z"/><path fill="%23FFCC4D" d="M16 7h4v27h-4z"/><path fill="%23FFCC4D" d="M2 10h32v4H2z"/><path fill="%23FFCC4D" d="M18 8c-2-2-5-4-7-2s0 5 4 5h3zm0 0c2-2 5-4 7-2s0 5-4 5h-3z"/></svg>'
+  },
+  {
+    id: 'ribbon-pink',
+    name: 'Nơ hồng',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><path fill="%23F4ABA6" d="M18 15c-3-5-9-8-13-4s0 10 7 10h6zm0 0c3-5 9-8 13-4s0 10-7 10h-6z"/><path fill="%23DD2E44" d="M12 21l-4 9 6-2 3-7zm12 0l4 9-6-2-3-7z"/><circle fill="%23E06D7E" cx="18" cy="17" r="4"/></svg>'
+  },
+  {
+    id: 'sparkle-star',
+    name: 'Ngôi sao',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><path fill="%23FFD983" d="M18 2l4 11 11 1-8 8 2 11-9-6-9 6 2-11-8-8 11-1z"/><circle fill="%23FFF" cx="18" cy="15" r="2.5"/></svg>'
+  },
+  {
+    id: 'bear-cute',
+    name: 'Gấu con',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle fill="%23A06A42" cx="10" cy="11" r="5"/><circle fill="%23DDA87F" cx="10" cy="11" r="2.5"/><circle fill="%23A06A42" cx="26" cy="11" r="5"/><circle fill="%23DDA87F" cx="26" cy="11" r="2.5"/><ellipse fill="%23A06A42" cx="18" cy="20" rx="12" ry="11"/><ellipse fill="%23DDA87F" cx="18" cy="23" rx="5.5" ry="4"/><circle fill="%23292F33" cx="14" cy="18" r="1.5"/><circle fill="%23292F33" cx="22" cy="18" r="1.5"/><ellipse fill="%23292F33" cx="18" cy="21.5" rx="2" ry="1.2"/></svg>'
+  },
+  {
+    id: 'love-letter',
+    name: 'Thư tình',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><path fill="%23FFF" d="M2 8h32v20H2z"/><path fill="%23E8DCCE" d="M2 8l16 12L34 8z"/><path fill="%23D4A373" d="M2 28l12-10L2 8zm32 0l-12-10 12-10z"/><circle fill="%23DD2E44" cx="18" cy="19" r="4"/></svg>'
+  }
 ];
 
 export function StickerDrawer({ onSelectSticker, customStickers = [], onAddCustomSticker }) {
@@ -50,7 +84,7 @@ export function StickerDrawer({ onSelectSticker, customStickers = [], onAddCusto
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Sparkles size={15} color="var(--rose-primary)" />
         <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-ink)' }}>
-          Bộ Sticker của hai bạn:
+          Bộ Sticker của hai bạn (bấm để dán lên bảng):
         </span>
       </div>
 
