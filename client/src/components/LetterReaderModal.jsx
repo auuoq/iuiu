@@ -69,14 +69,33 @@ export function LetterReaderModal({ letter, onClose }) {
           </div>
         </div>
 
+        {/* Decorative Stickers on Reader */}
+        {letter.stickers && letter.stickers.map((stk) => (
+          <img
+            key={stk.id}
+            src={stk.url}
+            alt="sticker"
+            style={{
+              position: 'absolute',
+              left: `${stk.x}%`,
+              top: `${stk.y}%`,
+              width: '38px',
+              height: '38px',
+              transform: `rotate(${stk.rotation || 0}deg)`,
+              pointerEvents: 'none',
+              filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.15))'
+            }}
+          />
+        ))}
+
         {/* Letter Text Content */}
         <div style={{
-          fontSize: '15.5px',
+          fontSize: '17px',
           lineHeight: '1.85',
-          color: 'var(--text-ink)',
+          color: letter.text_color || 'var(--text-ink)',
           whiteSpace: 'pre-wrap',
           marginBottom: '28px',
-          fontFamily: letter.paper_style === 'kraft' ? 'Georgia, serif' : 'var(--font-main)'
+          fontFamily: letter.font_family || (letter.paper_style === 'kraft' ? 'Georgia, serif' : 'var(--font-main)')
         }}>
           {letter.content}
         </div>

@@ -72,6 +72,10 @@ export const api = {
   getMilestones: () => request('/milestones'),
   createMilestone: (body) => request('/milestones', { method: 'POST', body: JSON.stringify(body) }),
 
+  // Scrapbook
+  getScrapbook: () => request('/scrapbook'),
+  saveScrapbook: (body) => request('/scrapbook', { method: 'PUT', body: JSON.stringify(body) }),
+
   // Upload real photo or sticker
   uploadFile: async (file) => {
     const formData = new FormData();

@@ -311,6 +311,62 @@ export function createServerApp(dbPath = null) {
     }
   });
 
+  // Scrapbook Board
+  app.get('/api/scrapbook', authenticateToken, (req, res) => {
+    try {
+      const user = getDb().prepare('SELECT couple_id FROM users WHERE id = ?').get(req.user.id);
+      if (!user || !user.couple_id) return res.json({ photos: [], stickers: [], notes: [] });
+
+      const row = getDb().prepare('SELECT * FROM scrapbook_boards WHERE couple_id = ?').get(user.couple_id);
+      if (!row) {
+        return res.json({ photos: [], stickers: [], notes: [] });
+      }
+      res.json({
+        photos: JSON.parse(row.photos || '[]'),
+        stickers: JSON.parse(row.stickers || '[]'),
+        notes: JSON.parse(row.notes || '[]'),
+        updated_at: row.updated_at
+      });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.put('/api/scrapbook', authenticateToken, (req, res) => {
+    try {
+      const user = getDb().prepare('SELECT couple_id FROM users WHERE id = ?').get(req.user.id);
+      if (!user || !user.couple_id) throw new Error('Chưa ghép đôi');
+
+      const { photos, stickers, notes } = req.body;
+      const photosJson = JSON.stringify(photos || []);
+      const stickersJson = JSON.stringify(stickers || []);
+      const notesJson = JSON.stringify(notes || []);
+
+      const existing = getDb().prepare('SELECT couple_id FROM scrapbook_boards WHERE couple_id = ?').get(user.couple_id);
+      if (existing) {
+        getDb().prepare(`
+          UPDATE scrapbook_boards 
+          SET photos = ?, stickers = ?, notes = ?, updated_at = CURRENT_TIMESTAMP 
+          WHERE couple_id = ?
+        `).run(photosJson, stickersJson, notesJson, user.couple_id);
+      } else {
+        getDb().prepare(`
+          INSERT INTO scrapbook_boards (couple_id, photos, stickers, notes, updated_at)
+          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `).run(user.couple_id, photosJson, stickersJson, notesJson);
+      }
+
+      broadcastToCouple(user.couple_id, 'scrapbook_updated', {
+        boardState: { photos, stickers, notes },
+        sender_id: req.user.id
+      });
+
+      res.json({ success: true });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
   // File Upload
   app.post('/api/upload', upload.single('file'), (req, res) => {
     if (!req.file) {

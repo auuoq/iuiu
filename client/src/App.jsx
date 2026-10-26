@@ -116,6 +116,8 @@ export default function App() {
             loadInitialData();
           } else if (data.type === 'new_letter') {
             api.getLetters().then(setLetters);
+          } else if (data.type === 'scrapbook_updated') {
+            window.dispatchEvent(new CustomEvent('lovecapsule_scrapbook_sync', { detail: data }));
           } else if (data.type === 'letter_deleted') {
             setLetters(prev => prev.filter(l => l.id !== data.letter_id));
           } else if (data.type === 'plant_watered') {
@@ -306,7 +308,7 @@ export default function App() {
           {/* Column 2: Photo Scrapbook Board & Love Plant */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Scrapbook Board */}
-            <ScrapbookBoard coupleId={couple.id} />
+            <ScrapbookBoard coupleId={couple.id} currentUserId={currentUser.id} wsRef={wsRef} />
 
             {/* Virtual Love Plant Widget & Gift Action */}
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>

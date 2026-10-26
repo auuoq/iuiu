@@ -127,6 +127,17 @@ export function initDb(dbPath = null) {
     );
   `);
 
+  // 8. scrapbook_boards
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS scrapbook_boards (
+      couple_id INTEGER PRIMARY KEY REFERENCES couples(id),
+      photos TEXT DEFAULT '[]',
+      stickers TEXT DEFAULT '[]',
+      notes TEXT DEFAULT '[]',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   dbInstance = db;
   return db;
 }

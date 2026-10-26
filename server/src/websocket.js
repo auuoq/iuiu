@@ -24,6 +24,11 @@ export function initWebSocketServer(server) {
             sender_name: msg.sender_name || 'Người yêu',
             timestamp: Date.now()
           });
+        } else if (msg.type === 'scrapbook_update') {
+          broadcastToCouple(msg.couple_id, 'scrapbook_updated', {
+            boardState: msg.boardState,
+            sender_id: msg.sender_id
+          }, ws);
         }
       } catch (err) {
         console.error('WS message error:', err.message);
@@ -40,7 +45,7 @@ export function initWebSocketServer(server) {
   return wss;
 }
 
-export function broadcastToCouple(coupleId, type, payload) {
+export function broadcastToCouple(coupleId, type, payload, exceptWs = null) {
   if (!wss) return;
 
   const data = JSON.stringify({ type, ...payload });
@@ -48,14 +53,14 @@ export function broadcastToCouple(coupleId, type, payload) {
   // If specific couple has clients, send to them
   if (coupleId && coupleClients.has(coupleId) && coupleClients.get(coupleId).size > 0) {
     for (const client of coupleClients.get(coupleId)) {
-      if (client.readyState === 1) { // OPEN
+      if (client !== exceptWs && client.readyState === 1) { // OPEN
         client.send(data);
       }
     }
   } else {
     // Broadcast to all clients
     for (const client of wss.clients) {
-      if (client.readyState === 1) {
+      if (client !== exceptWs && client.readyState === 1) {
         client.send(data);
       }
     }
