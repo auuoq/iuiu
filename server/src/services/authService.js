@@ -177,3 +177,36 @@ export function getCoupleInfo(userId) {
   const { password_hash, ...safeUser } = user;
   return { user: safeUser, couple, partner };
 }
+
+export function updateProfile(userId, { display_name, gender, avatar_url, new_password, anniversary_date }) {
+  const db = getDb();
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+  if (!user) {
+    throw new Error('Người dùng không tồn tại');
+  }
+
+  let passwordHash = user.password_hash;
+  if (new_password && new_password.trim()) {
+    if (new_password.trim().length < 4) {
+      throw new Error('Mật khẩu mới phải có ít nhất 4 ký tự');
+    }
+    passwordHash = bcrypt.hashSync(new_password.trim(), 10);
+  }
+
+  const newDisplayName = display_name !== undefined && display_name.trim() ? display_name.trim() : user.display_name;
+  const newGender = gender !== undefined ? gender : user.gender;
+  const newAvatar = avatar_url !== undefined ? avatar_url : user.avatar_url;
+
+  db.prepare(`
+    UPDATE users
+    SET display_name = ?, gender = ?, avatar_url = ?, password_hash = ?
+    WHERE id = ?
+  `).run(newDisplayName, newGender, newAvatar, passwordHash, userId);
+
+  if (anniversary_date && user.couple_id) {
+    db.prepare('UPDATE couples SET anniversary_date = ? WHERE id = ?').run(anniversary_date, user.couple_id);
+  }
+
+  return getCoupleInfo(userId);
+}
+

@@ -91,6 +91,19 @@ export function createServerApp(dbPath = null) {
     }
   });
 
+  app.put('/api/auth/profile', authenticateToken, (req, res) => {
+    try {
+      const result = authService.updateProfile(req.user.id, req.body);
+      const user = getDb().prepare('SELECT couple_id FROM users WHERE id = ?').get(req.user.id);
+      if (user && user.couple_id) {
+        broadcastToCouple(user.couple_id, 'profile_updated', { user_id: req.user.id });
+      }
+      res.json(result);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
   // Couple
   app.post('/api/couple/create', authenticateToken, (req, res) => {
     try {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { initDb } from '../src/db.js';
-import { registerUser, loginUser, createCouple, joinCouple, cancelPendingCouple, getCoupleInfo } from '../src/services/authService.js';
+import { registerUser, loginUser, createCouple, joinCouple, cancelPendingCouple, updateProfile, getCoupleInfo } from '../src/services/authService.js';
 
 describe('Auth & Pairing Service', () => {
   beforeEach(() => {
@@ -106,5 +106,27 @@ describe('Auth & Pairing Service', () => {
     cancelPendingCouple(u.user.id);
     const infoAfter = getCoupleInfo(u.user.id);
     expect(infoAfter.couple).toBeNull();
+  });
+
+  it('updates user profile, changes password, and updates anniversary date', () => {
+    const u = registerUser({ username: 'useredit', password: 'oldpassword', display_name: 'OldName', gender: 'other', pronoun: 'Bạn' });
+    const { couple } = createCouple(u.user.id, '2025-01-01');
+
+    const updated = updateProfile(u.user.id, {
+      display_name: 'NewName',
+      gender: 'male',
+      avatar_url: '/uploads/new-avatar.jpg',
+      new_password: 'brandnewpassword',
+      anniversary_date: '2025-05-20'
+    });
+
+    expect(updated.user.display_name).toBe('NewName');
+    expect(updated.user.gender).toBe('male');
+    expect(updated.user.avatar_url).toBe('/uploads/new-avatar.jpg');
+    expect(updated.couple.anniversary_date).toBe('2025-05-20');
+
+    // Verify new password works
+    const loginRes = loginUser({ username: 'useredit', password: 'brandnewpassword' });
+    expect(loginRes.user.display_name).toBe('NewName');
   });
 });

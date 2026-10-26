@@ -10,6 +10,7 @@ import { LetterReaderModal } from './components/LetterReaderModal.jsx';
 import { ScrapbookBoard } from './components/ScrapbookBoard.jsx';
 import { LovePlantWidget } from './components/LovePlantWidget.jsx';
 import { MilestoneBanner } from './components/MilestoneBanner.jsx';
+import { ProfileModal } from './components/ProfileModal.jsx';
 import { Heart, Gift, Sparkles, Send } from 'lucide-react';
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
   const [letterToEdit, setLetterToEdit] = useState(null);
   const [unlockingLetter, setUnlockingLetter] = useState(null);
   const [readingLetter, setReadingLetter] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showGiftModal, setShowGiftModal] = useState(false);
   const [giftAmount, setGiftAmount] = useState(10);
   const [giftMessage, setGiftMessage] = useState('Thưởng cho em/anh nè!');
@@ -110,6 +112,8 @@ export default function App() {
             spawnHearts(20);
           } else if (data.type === 'poke') {
             spawnHearts(12);
+          } else if (data.type === 'profile_updated') {
+            loadInitialData();
           } else if (data.type === 'new_letter') {
             api.getLetters().then(setLetters);
           } else if (data.type === 'letter_deleted') {
@@ -255,6 +259,7 @@ export default function App() {
         walletBalance={walletBalance}
         daysTogether={daysTogether}
         onPoke={handlePoke}
+        onOpenProfile={() => setShowProfileModal(true)}
         onLogout={() => { setToken(null); setCurrentUser(null); setCouple(null); }}
       />
 
@@ -393,6 +398,20 @@ export default function App() {
         <LetterReaderModal
           letter={readingLetter}
           onClose={() => setReadingLetter(null)}
+        />
+      )}
+
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <ProfileModal
+          user={currentUser}
+          couple={couple}
+          onClose={() => setShowProfileModal(false)}
+          onProfileUpdated={(res) => {
+            setCurrentUser(res.user);
+            if (res.couple) setCouple(res.couple);
+            loadInitialData();
+          }}
         />
       )}
 
