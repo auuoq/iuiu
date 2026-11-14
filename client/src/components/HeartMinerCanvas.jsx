@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import {
   playShoot,
   playCatch,
@@ -8,6 +8,10 @@ import {
 
 export function HeartMinerCanvas({
   level,
+  cash,
+  targetGoal,
+  timeLeft,
+  levelsCompleted,
   hasPowerDrink,
   hasLuckyClover,
   hasDiamondPolish,
@@ -15,28 +19,83 @@ export function HeartMinerCanvas({
   onUseDynamite,
   onItemCollected,
   onSpecialFound,
+  onExitGame,
   isPaused
 }) {
   const canvasRef = useRef(null);
 
-  // References for mutable game loop state
+  // Asset images loaded flag
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const assetsRef = useRef({
+    bg: null,
+    hook: null,
+    playerMining: null,
+    playerThrow: null,
+    gold: null,
+    rock: null,
+    diamond: null,
+    bag: null,
+    dynamite: null,
+    explosion: null
+  });
+
+  // Preload authentic images
+  useEffect(() => {
+    const assets = {
+      bg: '/miner/background.png',
+      hook: '/miner/hook.png',
+      playerMining: '/miner/player_mining.png',
+      playerThrow: '/miner/player_throw.png',
+      gold: '/miner/gold.png',
+      rock: '/miner/rock.png',
+      diamond: '/miner/diamond.png',
+      bag: '/miner/bag.png',
+      dynamite: '/miner/dynamite.png',
+      explosion: '/miner/explosion.png'
+    };
+
+    let loadedCount = 0;
+    const total = Object.keys(assets).length;
+
+    Object.entries(assets).forEach(([key, src]) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        assetsRef.current[key] = img;
+        loadedCount++;
+        if (loadedCount >= total) {
+          setAssetsLoaded(true);
+        }
+      };
+      img.onerror = () => {
+        // Fallback gracefully even if image fails
+        loadedCount++;
+        if (loadedCount >= total) {
+          setAssetsLoaded(true);
+        }
+      };
+    });
+  }, []);
+
+  // References for game state
   const stateRef = useRef({
-    // Crane & Hook
     originX: 400,
-    originY: 55,
+    originY: 64,
     angle: 0,
     angleDir: 1,
-    angleSpeed: 0.032,
+    angleSpeed: 0.034,
     hookState: 'IDLE', // 'IDLE' | 'SHOOTING' | 'RETRACTING'
-    hookLength: 45,
-    hookSpeed: 9.5,
+    hookLength: 38,
+    hookSpeed: 10.0,
     caughtItem: null,
     // Entities
     items: [],
-    particles: [],
-    // Miner animation
-    crankRotation: 0,
-    tickCounter: 0
+    // Explosions
+    explosions: [], // { x, y, frame: 0, maxFrame: 14 }
+    // Animation
+    animFrame: 0,
+    tickCounter: 0,
+    minerAction: 'IDLE' // 'IDLE' | 'MINING' | 'THROWING'
   });
 
   // Level Item Generation
@@ -44,7 +103,7 @@ export function HeartMinerCanvas({
     const items = [];
     const usedPositions = [];
 
-    function getValidPos(radius, minY = 140, maxY = 460) {
+    function getValidPos(radius, minY = 130, maxY = 470) {
       for (let attempt = 0; attempt < 80; attempt++) {
         const x = 50 + Math.random() * 700;
         const y = minY + Math.random() * (maxY - minY);
@@ -58,111 +117,117 @@ export function HeartMinerCanvas({
           return { x, y };
         }
       }
-      return { x: 100 + Math.random() * 600, y: minY + Math.random() * (maxY - minY) };
+      return { x: 80 + Math.random() * 640, y: minY + Math.random() * (maxY - minY) };
     }
 
-    // Diamond price adjusted with Polish book
     const diamondVal = hasDiamondPolish ? 780 : 600;
 
-    // Helper item adders
+    // Helpers to add authentic objects
     const addHeart = (size) => {
+      if (size === 'ruby') {
+        const pos = getValidPos(20, 140, 480);
+        items.push({ id: Math.random(), type: 'heart_ruby', x: pos.x, y: pos.y, r: 18, value: 100, mass: 1.8 });
+      } else if (size === 'giant_ruby') {
+        const pos = getValidPos(30, 180, 480);
+        items.push({ id: Math.random(), type: 'heart_giant_ruby', x: pos.x, y: pos.y, r: 28, value: 250, mass: 3.5 });
+      } else if (size === 'golden_heart') {
+        const pos = getValidPos(26, 160, 480);
+        items.push({ id: Math.random(), type: 'heart_golden', x: pos.x, y: pos.y, r: 24, value: 200, mass: 2.8 });
+      }
+    };
+
+    const addClassicGold = (size) => {
       if (size === 'small') {
-        const pos = getValidPos(16, 120, 460);
-        items.push({ id: Math.random(), type: 'heart_small', x: pos.x, y: pos.y, r: 15, value: 50, mass: 1.1 });
+        const pos = getValidPos(16, 120, 470);
+        items.push({ id: Math.random(), type: 'gold_small', x: pos.x, y: pos.y, r: 15, value: 50, mass: 1.2 });
       } else if (size === 'medium') {
-        const pos = getValidPos(23, 140, 460);
-        items.push({ id: Math.random(), type: 'heart_medium', x: pos.x, y: pos.y, r: 21, value: 100, mass: 2.2 });
-      } else if (size === 'giant') {
-        const pos = getValidPos(33, 180, 470);
-        items.push({ id: Math.random(), type: 'heart_giant', x: pos.x, y: pos.y, r: 30, value: 250, mass: 4.5 });
-      } else if (size === 'king') {
-        const pos = getValidPos(42, 240, 480);
-        items.push({ id: Math.random(), type: 'heart_king', x: pos.x, y: pos.y, r: 38, value: 500, mass: 6.5 });
+        const pos = getValidPos(24, 150, 480);
+        items.push({ id: Math.random(), type: 'gold_medium', x: pos.x, y: pos.y, r: 22, value: 100, mass: 2.4 });
+      } else {
+        const pos = getValidPos(36, 200, 480);
+        items.push({ id: Math.random(), type: 'gold_giant', x: pos.x, y: pos.y, r: 34, value: 500, mass: 6.0 });
       }
     };
 
     const addDiamond = () => {
-      const pos = getValidPos(14, 180, 480);
+      const pos = getValidPos(14, 170, 480);
       items.push({ id: Math.random(), type: 'diamond', x: pos.x, y: pos.y, r: 13, value: diamondVal, mass: 0.8 });
     };
 
     const addRock = (size) => {
       if (size === 'small') {
-        const pos = getValidPos(18, 130, 460);
+        const pos = getValidPos(18, 130, 480);
         items.push({ id: Math.random(), type: 'rock_small', x: pos.x, y: pos.y, r: 17, value: 11, mass: 4.8 });
       } else {
-        const pos = getValidPos(32, 160, 470);
-        items.push({ id: Math.random(), type: 'rock_large', x: pos.x, y: pos.y, r: 30, value: 20, mass: 9.0 });
+        const pos = getValidPos(32, 160, 480);
+        items.push({ id: Math.random(), type: 'rock_large', x: pos.x, y: pos.y, r: 30, value: 20, mass: 8.8 });
       }
     };
 
     const addMysteryBag = () => {
-      const pos = getValidPos(22, 150, 470);
-      items.push({ id: Math.random(), type: 'mystery_bag', x: pos.x, y: pos.y, r: 20, value: 0, mass: 2.5 });
+      const pos = getValidPos(22, 140, 480);
+      items.push({ id: Math.random(), type: 'bag', x: pos.x, y: pos.y, r: 20, value: 0, mass: 2.2 });
     };
 
-    const addBear = () => {
-      items.push({
-        id: Math.random(),
-        type: 'bear',
-        x: 100,
-        y: 200 + Math.random() * 200,
-        r: 18,
-        value: 200,
-        mass: 1.8,
-        vx: 1.4,
-        minX: 60,
-        maxX: 740
-      });
-    };
-
-    // Distribution by level
+    // Level item population
     if (lvl === 1) {
-      for (let i = 0; i < 5; i++) addHeart('small');
-      for (let i = 0; i < 3; i++) addHeart('medium');
-      addHeart('giant');
+      addClassicGold('small');
+      addClassicGold('small');
+      addHeart('ruby');
+      addHeart('ruby');
+      addHeart('golden_heart');
+      addClassicGold('medium');
       addRock('small');
       addRock('small');
+      addMysteryBag();
     } else if (lvl === 2) {
-      for (let i = 0; i < 4; i++) addHeart('small');
-      for (let i = 0; i < 3; i++) addHeart('medium');
-      for (let i = 0; i < 2; i++) addHeart('giant');
+      addClassicGold('small');
+      addHeart('ruby');
+      addHeart('golden_heart');
+      addHeart('giant_ruby');
+      addClassicGold('medium');
+      addClassicGold('giant');
       addDiamond();
       addRock('small');
       addRock('large');
       addMysteryBag();
     } else if (lvl === 3) {
-      for (let i = 0; i < 3; i++) addHeart('medium');
-      for (let i = 0; i < 2; i++) addHeart('giant');
-      addHeart('king');
+      addHeart('ruby');
+      addHeart('golden_heart');
+      addHeart('giant_ruby');
+      addClassicGold('medium');
+      addClassicGold('giant');
       addDiamond();
       addDiamond();
       addRock('small');
       addRock('large');
       addRock('large');
       addMysteryBag();
-      addBear();
+      addMysteryBag();
     } else {
       // Level 4+
-      for (let i = 0; i < 3; i++) addHeart('medium');
-      for (let i = 0; i < 3; i++) addHeart('giant');
-      addHeart('king');
-      for (let i = 0; i < 3; i++) addDiamond();
-      for (let i = 0; i < 3; i++) addRock('large');
-      for (let i = 0; i < 2; i++) addRock('small');
+      addHeart('ruby');
+      addHeart('golden_heart');
+      addHeart('giant_ruby');
+      addClassicGold('medium');
+      addClassicGold('giant');
+      addDiamond();
+      addDiamond();
+      addDiamond();
+      addRock('large');
+      addRock('large');
+      addRock('small');
       addMysteryBag();
       addMysteryBag();
-      addBear();
     }
 
     stateRef.current.items = items;
     stateRef.current.hookState = 'IDLE';
-    stateRef.current.hookLength = 45;
+    stateRef.current.hookLength = 38;
     stateRef.current.caughtItem = null;
-    stateRef.current.particles = [];
+    stateRef.current.explosions = [];
   }, [hasDiamondPolish]);
 
-  // Load level items on level change
   useEffect(() => {
     initLevelItems(level);
   }, [level, initLevelItems]);
@@ -180,29 +245,30 @@ export function HeartMinerCanvas({
   const throwDynamite = useCallback(() => {
     const s = stateRef.current;
     if (s.hookState === 'RETRACTING' && s.caughtItem && dynamiteCount > 0 && !isPaused) {
-      // Consume dynamite
       onUseDynamite();
-      playExplosion();
 
-      // Create explosion particles at item position
-      const item = s.caughtItem;
-      for (let i = 0; i < 28; i++) {
-        const pAngle = Math.random() * Math.PI * 2;
-        const pSpeed = 2 + Math.random() * 6;
-        s.particles.push({
-          x: item.x,
-          y: item.y,
-          vx: Math.cos(pAngle) * pSpeed,
-          vy: Math.sin(pAngle) * pSpeed,
-          radius: 3 + Math.random() * 5,
-          color: Math.random() > 0.5 ? '#f43f5e' : (Math.random() > 0.5 ? '#fbbf24' : '#e11d48'),
-          alpha: 1,
-          decay: 0.035
-        });
+      // Trigger authentic explosion
+      try {
+        const audio = new Audio('/miner/explosion.ogg');
+        audio.volume = 0.6;
+        audio.play().catch(() => playExplosion());
+      } catch (e) {
+        playExplosion();
       }
 
-      // Detach and accelerate reel
+      // Add explosion animation
+      s.explosions.push({
+        x: s.caughtItem.x,
+        y: s.caughtItem.y,
+        frame: 0,
+        maxFrame: 14
+      });
+
       s.caughtItem = null;
+      s.minerAction = 'THROWING';
+      setTimeout(() => {
+        if (s.minerAction === 'THROWING') s.minerAction = 'IDLE';
+      }, 500);
     }
   }, [dynamiteCount, onUseDynamite, isPaused]);
 
@@ -230,11 +296,13 @@ export function HeartMinerCanvas({
 
     const render = () => {
       const s = stateRef.current;
+      const assets = assetsRef.current;
 
       // 1. UPDATE PHYSICS
       if (!isPaused) {
         // A. Hook swinging
         if (s.hookState === 'IDLE') {
+          s.minerAction = 'IDLE';
           s.angle += s.angleSpeed * s.angleDir;
           if (s.angle > 1.25) {
             s.angle = 1.25;
@@ -247,21 +315,21 @@ export function HeartMinerCanvas({
 
         // B. Hook Shooting
         if (s.hookState === 'SHOOTING') {
+          s.minerAction = 'IDLE';
           s.hookLength += s.hookSpeed;
           const hookX = s.originX + Math.sin(s.angle) * s.hookLength;
           const hookY = s.originY + Math.cos(s.angle) * s.hookLength;
 
-          // Check boundary limits
-          if (hookX < 15 || hookX > 785 || hookY > 488) {
+          // Boundary checks
+          if (hookX < 15 || hookX > 785 || hookY > 505) {
             s.hookState = 'RETRACTING';
           }
 
-          // Check item collision
+          // Item collisions
           for (let i = 0; i < s.items.length; i++) {
             const item = s.items[i];
             const dist = Math.hypot(hookX - item.x, hookY - item.y);
-            if (dist < item.r + 10) {
-              // Caught!
+            if (dist < item.r + 14) {
               s.caughtItem = item;
               s.items.splice(i, 1);
               s.hookState = 'RETRACTING';
@@ -273,48 +341,59 @@ export function HeartMinerCanvas({
 
         // C. Hook Retracting
         if (s.hookState === 'RETRACTING') {
-          // Reeling speed formula based on weight
-          let speed = 13.0;
+          s.minerAction = 'MINING';
+          let speed = 14.0;
           if (s.caughtItem) {
             const effectiveMass = Math.max(0.8, s.caughtItem.mass);
-            speed = 10.5 / effectiveMass;
+            speed = 11.0 / effectiveMass;
             if (hasPowerDrink) {
               speed *= 2.2;
             }
           }
 
           s.hookLength -= speed;
-          s.crankRotation += 0.25;
-
           s.tickCounter++;
-          if (s.tickCounter % 9 === 0) {
+
+          if (s.tickCounter % 5 === 0) {
+            s.animFrame = (s.animFrame + 1) % 7;
+          }
+
+          if (s.tickCounter % 10 === 0) {
             playReelTick();
           }
 
-          if (s.hookLength <= 45) {
-            // Reached crane
-            s.hookLength = 45;
+          if (s.hookLength <= 38) {
+            // Reached miner top deck
+            s.hookLength = 38;
             s.hookState = 'IDLE';
+            s.minerAction = 'IDLE';
 
             if (s.caughtItem) {
               const item = s.caughtItem;
               s.caughtItem = null;
 
-              if (item.type === 'mystery_bag') {
-                // Mystery bag resolution
+              // Play reward audio
+              try {
+                const rewardAud = new Audio('/miner/reward.ogg');
+                rewardAud.volume = 0.5;
+                rewardAud.play().catch(() => playCatch());
+              } catch (e) {
+                playCatch();
+              }
+
+              if (item.type === 'bag') {
                 let prizeVal = 100;
                 if (hasLuckyClover) {
-                  const prizes = [400, 550, 700, 850];
+                  const prizes = [450, 600, 750, 900];
                   prizeVal = prizes[Math.floor(Math.random() * prizes.length)];
                 } else {
-                  const prizes = [50, 150, 250, 500, 750];
+                  const prizes = [50, 150, 300, 500, 800];
                   prizeVal = prizes[Math.floor(Math.random() * prizes.length)];
                 }
 
-                // Chance to award dynamite
-                if (Math.random() < 0.25) {
+                if (Math.random() < 0.28) {
                   onSpecialFound?.('🧨 Nhận được 1 quả Thuốc Nổ!');
-                } else if (Math.random() < 0.25) {
+                } else if (Math.random() < 0.28) {
                   onSpecialFound?.('⚡ Nhận được Nước Tăng Lực!');
                 }
 
@@ -326,33 +405,17 @@ export function HeartMinerCanvas({
           }
         }
 
-        // D. Update roaming bears
-        s.items.forEach(item => {
-          if (item.type === 'bear') {
-            item.x += item.vx;
-            if (item.x >= item.maxX) {
-              item.x = item.maxX;
-              item.vx = -Math.abs(item.vx);
-            } else if (item.x <= item.minX) {
-              item.x = item.minX;
-              item.vx = Math.abs(item.vx);
-            }
-          }
-        });
-
-        // E. Update explosion particles
-        for (let i = s.particles.length - 1; i >= 0; i--) {
-          const p = s.particles[i];
-          p.x += p.vx;
-          p.y += p.vy;
-          p.alpha -= p.decay;
-          if (p.alpha <= 0) {
-            s.particles.splice(i, 1);
+        // Update explosions
+        for (let i = s.explosions.length - 1; i >= 0; i--) {
+          const exp = s.explosions[i];
+          exp.frame += 0.5;
+          if (exp.frame >= exp.maxFrame) {
+            s.explosions.splice(i, 1);
           }
         }
       }
 
-      // Calculate current hook tip
+      // Calculate hook position
       const hookX = s.originX + Math.sin(s.angle) * s.hookLength;
       const hookY = s.originY + Math.cos(s.angle) * s.hookLength;
 
@@ -361,274 +424,308 @@ export function HeartMinerCanvas({
         s.caughtItem.y = hookY + s.caughtItem.r * 0.7;
       }
 
-      // 2. RENDER CANVAS
-      ctx.clearRect(0, 0, 800, 500);
+      // 2. RENDER GRAPHICS
+      ctx.clearRect(0, 0, 800, 520);
 
-      // Background underground mine
-      const groundGrad = ctx.createLinearGradient(0, 75, 0, 500);
-      groundGrad.addColorStop(0, '#ebdcc9');
-      groundGrad.addColorStop(0.3, '#dfccb3');
-      groundGrad.addColorStop(1, '#caa382');
-      ctx.fillStyle = groundGrad;
-      ctx.fillRect(0, 75, 800, 425);
-
-      // Subtle earth texture lines
-      ctx.strokeStyle = 'rgba(163, 127, 98, 0.2)';
-      ctx.lineWidth = 1.5;
-      for (let y = 110; y < 490; y += 45) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.bezierCurveTo(200, y + 10, 500, y - 10, 800, y + 5);
-        ctx.stroke();
+      // A. Real underground earth background
+      if (assets.bg && assets.bg.complete) {
+        // Draw background from y: 64 to 520
+        ctx.drawImage(assets.bg, 0, 64, 800, 456);
+      } else {
+        // Fallback rich earth gradient
+        const groundGrad = ctx.createLinearGradient(0, 64, 0, 520);
+        groundGrad.addColorStop(0, '#c79853');
+        groundGrad.addColorStop(0.4, '#a37136');
+        groundGrad.addColorStop(1, '#633e14');
+        ctx.fillStyle = groundGrad;
+        ctx.fillRect(0, 64, 800, 456);
       }
 
-      // Top surface platform
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, 75);
-      skyGrad.addColorStop(0, '#fef6ee');
-      skyGrad.addColorStop(1, '#fde6ce');
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, 800, 75);
+      // B. Items underground
+      s.items.forEach(item => drawItem(ctx, item, assets));
 
-      // Grass / surface border
-      ctx.fillStyle = '#65a30d';
-      ctx.fillRect(0, 70, 800, 5);
-
-      // Wooden mine support beam
-      ctx.fillStyle = '#8b5cf6';
-      ctx.fillStyle = '#92400e';
-      ctx.fillRect(s.originX - 45, 60, 90, 10);
-
-      // Crane Pulley Base
-      ctx.fillStyle = '#78350f';
-      ctx.beginPath();
-      ctx.arc(s.originX, s.originY, 18, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#451a03';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-
-      // Cute Miner Character
-      ctx.save();
-      ctx.translate(s.originX, s.originY - 26);
-      // Miner body
-      ctx.fillStyle = '#e06d7e';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 16, 12, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // Miner head
-      ctx.fillStyle = '#fed7aa';
-      ctx.beginPath();
-      ctx.arc(0, -12, 10, 0, Math.PI * 2);
-      ctx.fill();
-      // Miner hat with love badge
-      ctx.fillStyle = '#f43f5e';
-      ctx.beginPath();
-      ctx.arc(0, -15, 11, Math.PI, 0);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.font = '10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('❤️', 0, -15);
-      // Crank handle turning
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(12, 0);
-      const crankX = 12 + Math.cos(s.crankRotation) * 8;
-      const crankY = Math.sin(s.crankRotation) * 8;
-      ctx.lineTo(crankX, crankY);
-      ctx.stroke();
-      ctx.restore();
-
-      // DRAW ITEMS
-      s.items.forEach(item => drawItem(ctx, item));
-
-      // DRAW CAUGHT ITEM
+      // C. Caught item
       if (s.caughtItem) {
-        drawItem(ctx, s.caughtItem);
+        drawItem(ctx, s.caughtItem, assets);
       }
 
-      // DRAW ROPE
-      ctx.strokeStyle = '#451a03';
-      ctx.lineWidth = 2.5;
+      // D. Steel Cable
+      ctx.strokeStyle = '#27272a';
+      ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(s.originX, s.originY);
       ctx.lineTo(hookX, hookY);
       ctx.stroke();
 
-      // DRAW HOOK / CLAW
+      // Cable highlight
+      ctx.strokeStyle = '#71717a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(s.originX, s.originY);
+      ctx.lineTo(hookX, hookY);
+      ctx.stroke();
+
+      // E. Authentic Iron Hook
       ctx.save();
       ctx.translate(hookX, hookY);
       ctx.rotate(s.angle);
 
-      ctx.fillStyle = '#64748b';
-      ctx.fillRect(-4, -6, 8, 8);
-
-      const clawSpread = s.hookState === 'SHOOTING' ? 14 : (s.caughtItem ? 7 : 11);
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 3.5;
-      ctx.lineCap = 'round';
-
-      // Left claw
-      ctx.beginPath();
-      ctx.moveTo(-3, 0);
-      ctx.quadraticCurveTo(-clawSpread, 12, -4, 18);
-      ctx.stroke();
-
-      // Right claw
-      ctx.beginPath();
-      ctx.moveTo(3, 0);
-      ctx.quadraticCurveTo(clawSpread, 12, 4, 18);
-      ctx.stroke();
-
+      if (assets.hook && assets.hook.complete) {
+        // Draw real iron claw hook
+        ctx.drawImage(assets.hook, -18, -6, 36, 30);
+      } else {
+        // Procedural hook
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(-4, -6, 8, 8);
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 3.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-3, 0);
+        ctx.quadraticCurveTo(-14, 12, -4, 18);
+        ctx.moveTo(3, 0);
+        ctx.quadraticCurveTo(14, 12, 4, 18);
+        ctx.stroke();
+      }
       ctx.restore();
 
-      // DRAW EXPLOSION PARTICLES
-      s.particles.forEach(p => {
-        ctx.save();
-        ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+      // F. Explosions
+      s.explosions.forEach(exp => {
+        if (assets.explosion && assets.explosion.complete) {
+          const frameIdx = Math.floor(exp.frame);
+          ctx.drawImage(
+            assets.explosion,
+            frameIdx * 128, 0, 128, 128,
+            exp.x - 45, exp.y - 45, 90, 90
+          );
+        } else {
+          // Fallback explosion circle
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.7)';
+          ctx.beginPath();
+          ctx.arc(exp.x, exp.y, 35, 0, Math.PI * 2);
+          ctx.fill();
+        }
       });
+
+      // G. AUTHENTIC GOLD MINER TOP ARCADE BAR (Match 100% screenshot)
+      // Solid golden-yellow banner across top
+      ctx.fillStyle = '#fab81b';
+      ctx.fillRect(0, 0, 800, 64);
+
+      // Bottom shadow/border of yellow bar
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(0, 61, 800, 3);
+
+      // Wooden rail separating ground
+      ctx.fillStyle = '#854d0e';
+      ctx.fillRect(0, 64, 800, 5);
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(0, 68, 800, 1);
+
+      // Center royal blue semicircle dome arch
+      ctx.fillStyle = '#2563eb';
+      ctx.beginPath();
+      ctx.arc(s.originX, 64, 52, Math.PI, 0, false);
+      ctx.fill();
+      ctx.strokeStyle = '#1e40af';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Winch reel bracket
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(s.originX - 16, 54, 32, 10);
+
+      // Animated Real Prospector / Miner inside blue arch
+      if (assets.playerMining && assets.playerMining.complete) {
+        let frameIdx = 0;
+        if (s.minerAction === 'MINING') {
+          frameIdx = s.animFrame;
+        }
+        ctx.drawImage(
+          assets.playerMining,
+          frameIdx * 80, 0, 80, 120,
+          s.originX - 28, 64 - 72, 56, 84
+        );
+      } else {
+        // Fallback miner
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        ctx.arc(s.originX, 36, 14, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // LEFT SIDE HUD: Tiền & Mục tiêu (Classic Font & Colors)
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+
+      // 1. Tiền $...
+      ctx.font = 'bold 18px "Arial Black", Gadget, sans-serif';
+      ctx.fillStyle = '#5c3a00';
+      ctx.fillText('Tiền', 18, 12);
+
+      ctx.font = 'bold 22px "Arial Black", Gadget, sans-serif';
+      ctx.fillStyle = '#15803d'; // Rich green digital color
+      ctx.fillText(`$${cash}`, 70, 10);
+
+      // 2. Mục tiêu $...
+      ctx.font = 'bold 15px "Arial Black", Gadget, sans-serif';
+      ctx.fillStyle = '#5c3a00';
+      ctx.fillText('Mục tiêu', 18, 36);
+
+      ctx.font = 'bold 17px "Arial Black", Gadget, sans-serif';
+      ctx.fillStyle = '#b45309'; // Dark golden orange
+      ctx.fillText(`$${targetGoal}`, 92, 35);
+
+      // RIGHT SIDE HUD: Thoát, TG: 60, Cấp: 1
+      // 1. Thoát button
+      ctx.fillStyle = '#f59e0b';
+      ctx.strokeStyle = '#b45309';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(620, 12, 60, 40, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#78350f';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Thoát', 650, 32);
+
+      // 2. TG & Cấp
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.font = 'bold 15px "Arial Black", Gadget, sans-serif';
+      ctx.fillStyle = '#b91c1c';
+      ctx.fillText(`TG:  ${timeLeft}`, 695, 12);
+      ctx.fillText(`Cấp: ${level}`, 695, 36);
+
+      // 3. Heart Bonus indicator
+      ctx.fillStyle = '#be123c';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(`+${levelsCompleted} ❤️`, 695, 52);
 
       animId = requestAnimationFrame(render);
     };
 
     animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
-  }, [isPaused, hasPowerDrink, hasLuckyClover, onItemCollected, onSpecialFound]);
+  }, [isPaused, hasPowerDrink, hasLuckyClover, onItemCollected, onSpecialFound, cash, targetGoal, timeLeft, level, levelsCompleted]);
 
-  // Helper: Draw item with crisp Canvas vector art
-  function drawItem(ctx, item) {
+  // Handle click on canvas (detects Thoát button or fire hook)
+  const handleCanvasClick = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = 800 / rect.width;
+    const scaleY = 520 / rect.height;
+    const clickX = (e.clientX - rect.left) * scaleX;
+    const clickY = (e.clientY - rect.top) * scaleY;
+
+    // Check if clicked "Thoát" button (x: 620-680, y: 12-52)
+    if (clickX >= 620 && clickX <= 680 && clickY >= 12 && clickY <= 52) {
+      onExitGame?.();
+      return;
+    }
+
+    // Otherwise fire hook
+    fireHook();
+  };
+
+  // Helper to draw items
+  function drawItem(ctx, item, assets) {
     ctx.save();
     ctx.translate(item.x, item.y);
 
-    if (item.type.startsWith('heart_')) {
-      const r = item.r;
-      let gradColor1 = '#f43f5e';
-      let gradColor2 = '#be123c';
-
-      if (item.type === 'heart_giant') {
-        gradColor1 = '#fb7185';
-        gradColor2 = '#9f1239';
-      } else if (item.type === 'heart_king') {
-        gradColor1 = '#ff4d6d';
-        gradColor2 = '#590d22';
+    if (item.type.startsWith('gold_')) {
+      if (assets.gold && assets.gold.complete) {
+        const size = item.r * 2.2;
+        ctx.drawImage(assets.gold, -size / 2, -size / 2, size, size);
+      } else {
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath();
+        ctx.arc(0, 0, item.r, 0, Math.PI * 2);
+        ctx.fill();
       }
+    } else if (item.type.startsWith('rock_')) {
+      if (assets.rock && assets.rock.complete) {
+        const size = item.r * 2.1;
+        ctx.drawImage(assets.rock, -size / 2, -size / 2, size, size);
+      } else {
+        ctx.fillStyle = '#78716c';
+        ctx.beginPath();
+        ctx.arc(0, 0, item.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (item.type === 'diamond') {
+      if (assets.diamond && assets.diamond.complete) {
+        const size = item.r * 2.2;
+        ctx.drawImage(assets.diamond, -size / 2, -size / 2, size, size);
+      } else {
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(0, 0, item.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (item.type === 'bag') {
+      if (assets.bag && assets.bag.complete) {
+        const size = item.r * 2.0;
+        ctx.drawImage(assets.bag, -size / 2, -size / 2, size, size);
+      } else {
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(0, 0, item.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (item.type.startsWith('heart_')) {
+      // 3D Faceted Crystal Heart
+      const r = item.r;
+      const isGold = item.type === 'heart_golden';
+      const isGiant = item.type === 'heart_giant_ruby';
 
-      ctx.fillStyle = gradColor1;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
-      ctx.shadowBlur = 6;
+      // Drop shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 4;
+
+      // Outer Heart Path
       ctx.beginPath();
       const topY = -r * 0.4;
       ctx.moveTo(0, topY);
-      ctx.bezierCurveTo(r * 0.9, -r * 1.1, r * 1.3, r * 0.3, 0, r);
-      ctx.bezierCurveTo(-r * 1.3, r * 0.3, -r * 0.9, -r * 1.1, 0, topY);
-      ctx.fill();
+      ctx.bezierCurveTo(r * 0.9, -r * 1.15, r * 1.35, r * 0.3, 0, r * 1.05);
+      ctx.bezierCurveTo(-r * 1.35, r * 0.3, -r * 0.9, -r * 1.15, 0, topY);
 
-      // Gold outline for King Heart
-      if (item.type === 'heart_king') {
-        ctx.strokeStyle = '#fbbf24';
-        ctx.lineWidth = 3;
-        ctx.stroke();
+      // 3D Jewel Gradient Fill
+      const grad = ctx.createLinearGradient(-r, -r, r, r);
+      if (isGold) {
+        grad.addColorStop(0, '#fef08a');
+        grad.addColorStop(0.3, '#facc15');
+        grad.addColorStop(0.7, '#ca8a04');
+        grad.addColorStop(1, '#854d0e');
+      } else if (isGiant) {
+        grad.addColorStop(0, '#fda4af');
+        grad.addColorStop(0.3, '#f43f5e');
+        grad.addColorStop(0.7, '#be123c');
+        grad.addColorStop(1, '#4c0519');
+      } else {
+        grad.addColorStop(0, '#ff758f');
+        grad.addColorStop(0.4, '#e11d48');
+        grad.addColorStop(1, '#881337');
       }
 
-      // Heart Gloss shine
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-      ctx.beginPath();
-      ctx.ellipse(-r * 0.35, -r * 0.35, r * 0.25, r * 0.15, -Math.PI / 4, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
       ctx.fill();
-    } else if (item.type === 'diamond') {
-      const r = item.r;
-      ctx.shadowColor = 'rgba(236, 72, 153, 0.4)';
-      ctx.shadowBlur = 8;
-      ctx.fillStyle = '#f472b6';
-      ctx.beginPath();
-      ctx.moveTo(0, -r * 1.1);
-      ctx.lineTo(r, -r * 0.3);
-      ctx.lineTo(r * 0.7, r);
-      ctx.lineTo(-r * 0.7, r);
-      ctx.lineTo(-r, -r * 0.3);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#fbcfe8';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
 
-      // Facet highlight
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.moveTo(0, -r * 1.1);
-      ctx.lineTo(r * 0.3, -r * 0.3);
-      ctx.lineTo(-r * 0.3, -r * 0.3);
-      ctx.closePath();
-      ctx.fill();
-    } else if (item.type.startsWith('rock_')) {
-      const r = item.r;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-      ctx.shadowBlur = 4;
-      ctx.fillStyle = '#78716c';
-      ctx.beginPath();
-      // Craggy irregular rock
-      ctx.moveTo(0, -r);
-      ctx.lineTo(r * 0.8, -r * 0.7);
-      ctx.lineTo(r, 0);
-      ctx.lineTo(r * 0.8, r * 0.8);
-      ctx.lineTo(0, r);
-      ctx.lineTo(-r * 0.9, r * 0.7);
-      ctx.lineTo(-r, -0.2);
-      ctx.lineTo(-r * 0.6, -r * 0.8);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#57534e';
+      // Faceted 3D Bevel Rim
+      ctx.shadowColor = 'transparent';
+      ctx.strokeStyle = isGold ? '#fef9c3' : '#ffe4e6';
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Rock crack lines
-      ctx.strokeStyle = '#44403c';
-      ctx.lineWidth = 1.5;
+      // Specular Star Sparkle
+      ctx.fillStyle = '#fff';
       ctx.beginPath();
-      ctx.moveTo(-r * 0.3, -r * 0.2);
-      ctx.lineTo(r * 0.2, r * 0.1);
-      ctx.lineTo(r * 0.4, r * 0.4);
-      ctx.stroke();
-    } else if (item.type === 'mystery_bag') {
-      const r = item.r;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-      ctx.shadowBlur = 6;
-      ctx.fillStyle = '#fbbf24';
-      ctx.beginPath();
-      ctx.ellipse(0, 2, r, r * 0.85, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#b45309';
-      ctx.fillRect(-4, -r * 0.9, 8, 6);
-
-      // Question mark '?'
-      ctx.fillStyle = '#78350f';
-      ctx.font = 'bold 16px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('?', 0, 2);
-    } else if (item.type === 'bear') {
-      const r = item.r;
-      // Teddy bear holding a heart
-      ctx.fillStyle = '#b45309';
-      ctx.beginPath();
-      ctx.arc(0, 0, r, 0, Math.PI * 2);
-      ctx.fill();
-      // Bear ears
-      ctx.beginPath();
-      ctx.arc(-r * 0.7, -r * 0.7, r * 0.35, 0, Math.PI * 2);
-      ctx.arc(r * 0.7, -r * 0.7, r * 0.35, 0, Math.PI * 2);
-      ctx.fill();
-      // Little heart in bear's paws
-      ctx.fillStyle = '#f43f5e';
-      ctx.beginPath();
-      ctx.arc(-2, 2, 4, 0, Math.PI * 2);
-      ctx.arc(2, 2, 4, 0, Math.PI * 2);
+      ctx.ellipse(-r * 0.35, -r * 0.35, r * 0.28, r * 0.15, -Math.PI / 4, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -640,21 +737,21 @@ export function HeartMinerCanvas({
       <canvas
         ref={canvasRef}
         width={800}
-        height={500}
-        onClick={fireHook}
+        height={520}
+        onClick={handleCanvasClick}
         style={{
           width: '100%',
           height: 'auto',
-          aspectRatio: '800 / 500',
+          aspectRatio: '800 / 520',
           display: 'block',
           borderRadius: '16px',
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
-          cursor: stateRef.current.hookState === 'IDLE' ? 'pointer' : 'default',
-          background: '#ebdcc9'
+          boxShadow: '0 12px 36px rgba(0, 0, 0, 0.4)',
+          cursor: 'pointer',
+          background: '#fab81b'
         }}
       />
 
-      {/* Floating Mobile / On-Screen Controls */}
+      {/* Floating Controls for Mobile / Quick Action */}
       <div style={{
         position: 'absolute',
         bottom: '12px',
@@ -676,26 +773,22 @@ export function HeartMinerCanvas({
           style={{
             background: dynamiteCount > 0 ? 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' : '#9ca3af',
             color: '#fff',
-            border: '2px solid rgba(255,255,255,0.7)',
+            border: '2px solid rgba(255,255,255,0.8)',
             borderRadius: '24px',
-            padding: '8px 14px',
-            fontSize: '13px',
+            padding: '7px 14px',
+            fontSize: '12.5px',
             fontWeight: '800',
             cursor: dynamiteCount > 0 ? 'pointer' : 'not-allowed',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            opacity: dynamiteCount > 0 ? 1 : 0.6
+            gap: '5px'
           }}
         >
-          <span>🧨 Nổ Bom</span>
-          <span style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 6px', borderRadius: '10px', fontSize: '11px' }}>
-            {dynamiteCount}
-          </span>
+          <span>🧨 Nổ Bom ({dynamiteCount})</span>
         </button>
 
-        {/* Shoot Hook Button (Touch friendly) */}
+        {/* Shoot Button */}
         <button
           type="button"
           onClick={(e) => {
@@ -703,15 +796,15 @@ export function HeartMinerCanvas({
             fireHook();
           }}
           style={{
-            background: 'linear-gradient(135deg, #e06d7e 0%, #c95264 100%)',
+            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
             color: '#fff',
-            border: '2px solid rgba(255,255,255,0.7)',
+            border: '2px solid rgba(255,255,255,0.8)',
             borderRadius: '24px',
-            padding: '8px 16px',
-            fontSize: '13px',
+            padding: '7px 16px',
+            fontSize: '12.5px',
             fontWeight: '800',
             cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(224, 109, 126, 0.4)'
+            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)'
           }}
         >
           ⬇️ Thả Móc (Space)

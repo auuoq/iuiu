@@ -10,7 +10,6 @@ import {
   Play,
   RotateCcw,
   Sparkles,
-  Trophy,
   ShoppingBag,
   Zap,
   Clock,
@@ -44,7 +43,7 @@ export function HeartMinerModal({ isOpen, onClose, currentUserId, walletBalance,
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Shop inventory & active buffs
-  const [dynamiteCount, setDynamiteCount] = useState(1); // Free 1 dynamite to start!
+  const [dynamiteCount, setDynamiteCount] = useState(1); // Free 1 dynamite to start
   const [hasPowerDrink, setHasPowerDrink] = useState(false);
   const [hasLuckyClover, setHasLuckyClover] = useState(false);
   const [hasDiamondPolish, setHasDiamondPolish] = useState(false);
@@ -129,7 +128,6 @@ export function HeartMinerModal({ isOpen, onClose, currentUserId, walletBalance,
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          // Check if goal reached
           if (cash >= targetGoal) {
             handleLevelCleared();
           } else {
@@ -185,7 +183,6 @@ export function HeartMinerModal({ isOpen, onClose, currentUserId, walletBalance,
   const handleNextLevel = () => {
     setLevel(prev => prev + 1);
     setTimeLeft(60);
-    // Consumable power drinks or single-stage buffs reset after next level starts
     setGameState('PLAYING');
   };
 
@@ -210,574 +207,448 @@ export function HeartMinerModal({ isOpen, onClose, currentUserId, walletBalance,
       left: 0,
       right: 0,
       bottom: 0,
-      background: 'rgba(28, 25, 23, 0.85)',
+      background: 'rgba(20, 15, 10, 0.88)',
       backdropFilter: 'blur(8px)',
       zIndex: 9999,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '16px'
+      padding: '12px'
     }}>
       <div
         ref={containerRef}
         style={{
-          background: '#fffdfa',
-          border: '3px solid #d8caa8',
-          borderRadius: '24px',
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.4)',
+          background: '#fab81b',
+          border: '4px solid #854d0e',
+          borderRadius: '20px',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6)',
           width: '100%',
-          maxWidth: '860px',
+          maxWidth: '820px',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative'
         }}
       >
-        {/* TOP ARCADE HUD */}
-        <div style={{
-          background: 'linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%)',
-          borderBottom: '3px solid #d97706',
-          padding: '10px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          color: '#78350f',
-          fontWeight: '800',
-          fontSize: '13px',
-          boxShadow: 'inset 0 -2px 4px rgba(0,0,0,0.1)'
-        }}>
-          {/* Cash & Goal */}
-          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-            <div style={{
-              background: '#fff',
-              padding: '4px 12px',
-              borderRadius: '20px',
-              border: '2px solid #b45309',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <span style={{ fontSize: '11px', color: '#92400e' }}>TIỀN:</span>
-              <span style={{ color: '#15803d', fontSize: '16px', fontWeight: '900' }}>${cash}</span>
-            </div>
-
-            <div style={{
-              background: '#fff',
-              padding: '4px 12px',
-              borderRadius: '20px',
-              border: '2px solid #b45309',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <span style={{ fontSize: '11px', color: '#92400e' }}>MỤC TIÊU:</span>
-              <span style={{ color: '#b91c1c', fontSize: '16px', fontWeight: '900' }}>${targetGoal}</span>
-            </div>
-          </div>
-
-          {/* Center Info: Level & Earned Hearts */}
-          <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-            <div style={{
-              background: 'rgba(255,255,255,0.7)',
-              padding: '4px 10px',
-              borderRadius: '12px',
-              fontSize: '13px'
-            }}>
-              Màn: <span style={{ color: '#b45309', fontSize: '15px' }}>{level}</span>
-            </div>
-
-            <div style={{
-              background: '#fee2e2',
-              border: '1.5px solid #f87171',
-              color: '#b91c1c',
-              padding: '4px 10px',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '12.5px'
-            }}>
-              <Heart size={13} fill="#b91c1c" />
-              <span>Thưởng: +{levelsCompleted} ❤️</span>
-            </div>
-          </div>
-
-          {/* Right Controls: Timer, Fullscreen, Close */}
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            {/* Timer */}
-            <div style={{
-              background: timeLeft <= 10 ? '#fee2e2' : '#fff',
-              color: timeLeft <= 10 ? '#dc2626' : '#92400e',
-              border: '2px solid #b45309',
-              borderRadius: '20px',
-              padding: '4px 12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              animation: timeLeft <= 10 ? 'pulse 1s infinite' : 'none'
-            }}>
-              <Clock size={14} />
-              <span style={{ fontSize: '15px', fontWeight: '900' }}>{timeLeft}s</span>
-            </div>
-
-            {/* Fullscreen toggle */}
-            <button
-              type="button"
-              onClick={toggleFullscreen}
-              title="Toàn màn hình"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#78350f', padding: '4px' }}
-            >
-              {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
-            </button>
-
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={handleClose}
-              title="Đóng game"
-              style={{
-                background: '#dc2626',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '50%',
-                width: '26px',
-                height: '26px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-            >
-              <X size={15} />
-            </button>
-          </div>
-        </div>
-
         {/* SPECIAL MESSAGE POPUP */}
         {specialMessage && (
           <div style={{
             position: 'absolute',
-            top: '65px',
+            top: '75px',
             left: '50%',
             transform: 'translateX(-50%)',
             background: 'rgba(255, 255, 255, 0.95)',
             border: '2px solid #f59e0b',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
             borderRadius: '20px',
-            padding: '8px 20px',
+            padding: '8px 22px',
             zIndex: 100,
-            fontSize: '13px',
+            fontSize: '13.5px',
             fontWeight: '800',
-            color: '#b45309',
-            animation: 'bounce 0.5s'
+            color: '#b45309'
           }}>
             {specialMessage}
           </div>
         )}
 
-        {/* ACTIVE BUFFS BAR */}
-        {gameState === 'PLAYING' && (
+        {/* 1. READY SCREEN */}
+        {gameState === 'READY' && (
           <div style={{
             background: '#fffbf5',
-            padding: '5px 16px',
-            fontSize: '11.5px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: '1px solid #ebdcd0',
-            color: '#78716c'
+            padding: '40px 24px',
+            textAlign: 'center'
           }}>
-            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-              <span>Trợ lực đang có:</span>
-              <span style={{ fontWeight: '700', color: dynamiteCount > 0 ? '#dc2626' : '#a8a29e' }}>
-                🧨 {dynamiteCount} Thuốc Nổ
-              </span>
-              {hasPowerDrink && (
-                <span style={{ fontWeight: '700', color: '#16a34a' }}>
-                  🥤 Nước Tăng Lực (Kéo siêu nhanh)
-                </span>
-              )}
-              {hasLuckyClover && (
-                <span style={{ fontWeight: '700', color: '#0284c7' }}>
-                  🍀 Cỏ 4 Lá (Túi tiền khủng)
-                </span>
-              )}
-              {hasDiamondPolish && (
-                <span style={{ fontWeight: '700', color: '#c026d3' }}>
-                  💎 Sách Đánh Bóng (+30% giá kim cương)
-                </span>
-              )}
+            <div style={{ fontSize: '56px', marginBottom: '8px' }}>⛏️</div>
+            <h2 style={{ fontSize: '26px', fontWeight: '900', color: '#854d0e', letterSpacing: '0.5px' }}>
+              ĐÀO TIM CỔ ĐIỂN (GOLD MINER)
+            </h2>
+            <p style={{ color: '#78716c', fontSize: '14px', marginTop: '6px' }}>
+              Phiên bản huyền thoại tuổi thơ với đồ họa Trái Tim &amp; Kim Cương tuyệt đẹp!
+            </p>
+
+            <div style={{
+              background: '#fef3c7',
+              border: '2px dashed #f59e0b',
+              borderRadius: '16px',
+              padding: '16px',
+              maxWidth: '460px',
+              margin: '22px auto',
+              textAlign: 'left',
+              color: '#92400e',
+              fontSize: '13px'
+            }}>
+              <div style={{ fontWeight: '800', marginBottom: '6px' }}>🏆 Luật Chơi &amp; Thưởng Ví Tim:</div>
+              <ul style={{ paddingLeft: '20px', margin: 0, lineHeight: 1.6 }}>
+                <li>Chi <b>1 ❤️</b> vé vào mỏ tình yêu.</li>
+                <li>Mỗi màn vượt qua được thưởng <b>+1 ❤️</b> thẳng vào ví!</li>
+                <li>Vượt 3 màn = nhận 3 ❤️ (lời 2 ❤️ để tặng bạn ấy hoặc tưới cây).</li>
+              </ul>
             </div>
 
-            <span style={{ fontSize: '11px', color: '#a8a29e' }}>
-              Nhấn <b>Phím Cách / Mũi tên xuống</b> để thả móc • Bấm <b>W / Mũi tên lên</b> để nổ bom
-            </span>
-          </div>
-        )}
-
-        {/* MAIN GAMEPLAY VIEW */}
-        <div style={{ position: 'relative', background: '#ebdcc9', minHeight: '480px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {/* 1. READY SCREEN */}
-          {gameState === 'READY' && (
-            <div style={{
-              textAlign: 'center',
-              padding: '40px 24px',
-              maxWidth: '520px',
-              background: '#fff',
-              borderRadius: '24px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-              border: '2px solid #ebdcd0'
-            }}>
-              <div style={{ fontSize: '50px', marginBottom: '8px' }}>⛏️💖</div>
-              <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#b45309' }}>
-                Đào Tim Cổ Điển (Heart Miner)
-              </h2>
-              <p style={{ color: '#78716c', fontSize: '13.5px', marginTop: '6px', lineHeight: 1.5 }}>
-                Bản game Đào Vàng huyền thoại tuổi thơ với đồ họa Trái Tim lãng mạn. Thả móc câu gắp thật nhiều Tim, Pha Lê và Hộp Quà để vượt qua các màn chơi!
-              </p>
-
-              {/* Economy info */}
-              <div style={{
-                background: '#fef3c7',
-                border: '1.5px solid #fde68a',
-                borderRadius: '16px',
-                padding: '14px',
-                margin: '20px 0',
-                fontSize: '13px',
-                color: '#92400e',
-                textAlign: 'left'
-              }}>
-                <div style={{ fontWeight: '800', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>🏆 Quy tắc Thưởng - Phạt Ví Tim:</span>
-                </div>
-                <ul style={{ paddingLeft: '18px', margin: 0, lineHeight: 1.6 }}>
-                  <li>Chi <b>1 ❤️</b> vé vào mỏ tình yêu.</li>
-                  <li>Mỗi màn vượt qua được thưởng <b>+1 ❤️</b> tích lũy thẳng vào ví!</li>
-                  <li>Vượt 3 màn = nhận 3 ❤️ (lời 2 ❤️ để tặng bạn ấy hoặc tưới cây).</li>
-                </ul>
+            {errorMsg && (
+              <div style={{ color: '#dc2626', fontSize: '13px', fontWeight: '700', marginBottom: '14px' }}>
+                {errorMsg}
               </div>
+            )}
 
-              {errorMsg && (
-                <div style={{ color: '#dc2626', fontSize: '13px', fontWeight: '700', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                  <AlertCircle size={16} />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button
                 type="button"
                 onClick={handleStartGame}
                 disabled={loading}
                 style={{
-                  background: 'linear-gradient(135deg, #e06d7e 0%, #c95264 100%)',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                   color: '#fff',
-                  border: 'none',
-                  borderRadius: '16px',
-                  padding: '14px 32px',
+                  border: '2px solid #b45309',
+                  borderRadius: '14px',
+                  padding: '13px 32px',
                   fontSize: '15px',
                   fontWeight: '800',
                   cursor: 'pointer',
-                  boxShadow: '0 6px 20px rgba(224, 109, 126, 0.4)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'transform 0.15s'
+                  boxShadow: '0 6px 18px rgba(217, 119, 6, 0.4)'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
               >
-                <Play size={18} fill="#fff" />
-                <span>{loading ? 'Đang vào mỏ...' : 'Bắt Đầu Đào Tim (-1 ❤️)'}</span>
+                {loading ? 'Đang mở mỏ...' : 'BẮT ĐẦU ĐÀO (-1 ❤️)'}
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  background: '#e5e7eb',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '14px',
+                  padding: '13px 20px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: 'pointer'
+                }}
+              >
+                Đóng
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* 2. PLAYING CANVAS */}
-          {gameState === 'PLAYING' && (
-            <HeartMinerCanvas
-              level={level}
-              hasPowerDrink={hasPowerDrink}
-              hasLuckyClover={hasLuckyClover}
-              hasDiamondPolish={hasDiamondPolish}
-              dynamiteCount={dynamiteCount}
-              onUseDynamite={handleUseDynamite}
-              onItemCollected={handleItemCollected}
-              onSpecialFound={handleSpecialFound}
-              isPaused={isPaused}
-            />
-          )}
+        {/* 2. PLAYING CANVAS VIEW (Authentic 100% Gold Miner HUD & Sprites) */}
+        {gameState === 'PLAYING' && (
+          <HeartMinerCanvas
+            level={level}
+            cash={cash}
+            targetGoal={targetGoal}
+            timeLeft={timeLeft}
+            levelsCompleted={levelsCompleted}
+            hasPowerDrink={hasPowerDrink}
+            hasLuckyClover={hasLuckyClover}
+            hasDiamondPolish={hasDiamondPolish}
+            dynamiteCount={dynamiteCount}
+            onUseDynamite={handleUseDynamite}
+            onItemCollected={handleItemCollected}
+            onSpecialFound={handleSpecialFound}
+            onExitGame={handleClose}
+            isPaused={isPaused}
+          />
+        )}
 
-          {/* 3. INTERMISSION SHOP */}
-          {gameState === 'SHOP' && (
-            <div style={{
-              width: '100%',
-              maxWidth: '680px',
-              background: '#fff',
-              border: '2px solid #ebdcd0',
-              borderRadius: '24px',
-              padding: '28px',
-              boxShadow: '0 12px 35px rgba(0,0,0,0.15)',
-              margin: '20px'
-            }}>
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <span style={{ fontSize: '13px', background: '#dcfce7', color: '#15803d', padding: '4px 12px', borderRadius: '14px', fontWeight: '800' }}>
-                  🎉 CHÚC MỪNG BẠN ĐÃ QUA MÀN {level}!
-                </span>
-                <h3 style={{ fontSize: '22px', fontWeight: '900', color: '#92400e', marginTop: '8px' }}>
-                  Cửa Hàng Tạp Hóa Tình Yêu 🛒
-                </h3>
-                <p style={{ color: '#78716c', fontSize: '13px' }}>
-                  Dùng tiền đào được trong game để mua đồ trợ giúp cho Màn {level + 1}! (Mục tiêu tiếp theo: ${LEVEL_GOALS[level] || targetGoal + 1600})
-                </p>
-              </div>
-
-              {/* Shop items grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '24px' }}>
-                {/* 1. Dynamite */}
-                <div style={{
-                  background: '#fef2f2',
-                  border: '1.5px solid #fecaca',
-                  borderRadius: '16px',
-                  padding: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '24px' }}>🧨</div>
-                    <div style={{ fontWeight: '800', fontSize: '14px', color: '#991b1b' }}>Thuốc Nổ</div>
-                    <div style={{ fontSize: '11.5px', color: '#78716c' }}>Nổ tan đá tảng khi gắp nhầm (Kho: {dynamiteCount}/3)</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleBuyShopItem('dynamite', 150)}
-                    disabled={cash < 150 || dynamiteCount >= 3}
-                    style={{
-                      background: cash >= 150 && dynamiteCount < 3 ? '#ef4444' : '#d1d5db',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '12px',
-                      padding: '8px 14px',
-                      fontWeight: '800',
-                      fontSize: '12.5px',
-                      cursor: cash >= 150 && dynamiteCount < 3 ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    $150
-                  </button>
-                </div>
-
-                {/* 2. Power Drink */}
-                <div style={{
-                  background: '#f0fdf4',
-                  border: '1.5px solid #bbf7d0',
-                  borderRadius: '16px',
-                  padding: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '24px' }}>🥤</div>
-                    <div style={{ fontWeight: '800', fontSize: '14px', color: '#166534' }}>Nước Tăng Lực</div>
-                    <div style={{ fontSize: '11.5px', color: '#78716c' }}>Kéo mọi vật phẩm nhanh gấp đôi</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleBuyShopItem('powerDrink', 200)}
-                    disabled={cash < 200 || hasPowerDrink}
-                    style={{
-                      background: cash >= 200 && !hasPowerDrink ? '#22c55e' : '#d1d5db',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '12px',
-                      padding: '8px 14px',
-                      fontWeight: '800',
-                      fontSize: '12.5px',
-                      cursor: cash >= 200 && !hasPowerDrink ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    {hasPowerDrink ? 'Đã có' : '$200'}
-                  </button>
-                </div>
-
-                {/* 3. Lucky Clover */}
-                <div style={{
-                  background: '#f0f9ff',
-                  border: '1.5px solid #bae6fd',
-                  borderRadius: '16px',
-                  padding: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '24px' }}>🍀</div>
-                    <div style={{ fontWeight: '800', fontSize: '14px', color: '#075985' }}>Cỏ 4 Lá</div>
-                    <div style={{ fontSize: '11.5px', color: '#78716c' }}>Túi bí ẩn mở ra toàn tiền khủng</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleBuyShopItem('luckyClover', 100)}
-                    disabled={cash < 100 || hasLuckyClover}
-                    style={{
-                      background: cash >= 100 && !hasLuckyClover ? '#0284c7' : '#d1d5db',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '12px',
-                      padding: '8px 14px',
-                      fontWeight: '800',
-                      fontSize: '12.5px',
-                      cursor: cash >= 100 && !hasLuckyClover ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    {hasLuckyClover ? 'Đã có' : '$100'}
-                  </button>
-                </div>
-
-                {/* 4. Diamond Polish */}
-                <div style={{
-                  background: '#faf5ff',
-                  border: '1.5px solid #e9d5ff',
-                  borderRadius: '16px',
-                  padding: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '24px' }}>💎</div>
-                    <div style={{ fontWeight: '800', fontSize: '14px', color: '#86198f' }}>Sách Đánh Bóng</div>
-                    <div style={{ fontSize: '11.5px', color: '#78716c' }}>Tăng 30% giá trị Kim Cương/Pha Lê</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleBuyShopItem('diamondPolish', 180)}
-                    disabled={cash < 180 || hasDiamondPolish}
-                    style={{
-                      background: cash >= 180 && !hasDiamondPolish ? '#a855f7' : '#d1d5db',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '12px',
-                      padding: '8px 14px',
-                      fontWeight: '800',
-                      fontSize: '12.5px',
-                      cursor: cash >= 180 && !hasDiamondPolish ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    {hasDiamondPolish ? 'Đã có' : '$180'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Continue button */}
-              <div style={{ textAlign: 'center' }}>
-                <button
-                  type="button"
-                  onClick={handleNextLevel}
-                  style={{
-                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '16px',
-                    padding: '12px 32px',
-                    fontSize: '14.5px',
-                    fontWeight: '800',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)'
-                  }}
-                >
-                  Tiếp Tục Màn {level + 1} ➡️
-                </button>
+        {/* 3. AUTHENTIC RETRO WOODEN SHOP (Cửa Hàng Tạp Hóa Kinh Điển) */}
+        {gameState === 'SHOP' && (
+          <div style={{
+            background: 'linear-gradient(180deg, #78350f 0%, #451a03 100%)',
+            padding: '24px 20px',
+            color: '#fff'
+          }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+              <span style={{ background: '#16a34a', color: '#fff', padding: '3px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '800' }}>
+                🎉 ĐÃ VƯỢT QUA MÀN {level}!
+              </span>
+              <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#fde047', marginTop: '6px', letterSpacing: '1px' }}>
+                TIỆM TẠP HÓA ĐÀO VÀNG 🛒
+              </h2>
+              <div style={{ fontSize: '13px', color: '#fef08a' }}>
+                Mục tiêu Màn {level + 1} tiếp theo: <b style={{ color: '#4ade80' }}>${LEVEL_GOALS[level] || targetGoal + 1600}</b> • Tiền của bạn: <b style={{ color: '#4ade80', fontSize: '16px' }}>${cash}</b>
               </div>
             </div>
-          )}
 
-          {/* 4. GAME OVER SCREEN */}
-          {gameState === 'GAME_OVER' && (
+            {/* Shopkeeper dialogue speech */}
             <div style={{
-              textAlign: 'center',
-              padding: '36px 24px',
-              maxWidth: '480px',
-              background: '#fff',
-              borderRadius: '24px',
-              boxShadow: '0 12px 35px rgba(0,0,0,0.15)',
-              border: '2px solid #ebdcd0'
+              background: '#292524',
+              border: '2px solid #a8a29e',
+              borderRadius: '16px',
+              padding: '12px 18px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px'
             }}>
-              <div style={{ fontSize: '48px', marginBottom: '8px' }}>🏁</div>
-              <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#b91c1c' }}>
-                Hết Giờ! Chưa Đạt Mục Tiêu
-              </h2>
-              <p style={{ color: '#78716c', fontSize: '13px', marginTop: '4px' }}>
-                Bạn đã dừng chân tại Màn {level} với số điểm ${cash} (Mục tiêu: ${targetGoal}).
-              </p>
+              <div style={{ fontSize: '38px', lineHeight: 1 }}>👴🏻</div>
+              <div style={{ fontSize: '13.5px', color: '#fed7aa', fontStyle: 'italic', lineHeight: 1.4 }}>
+                "Khá lắm anh bạn trẻ! Màn tới đất cứng đá to nhiều lắm, hãy mua chút đồ nghề trợ giúp để đào cho năng suất nhé!"
+              </div>
+            </div>
 
-              {/* Reward Box */}
+            {/* Wooden shelf / counter items */}
+            <div style={{
+              background: 'linear-gradient(180deg, #92400e 0%, #78350f 100%)',
+              border: '3px solid #b45309',
+              borderRadius: '16px',
+              padding: '18px 14px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '12px',
+              boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.4)',
+              marginBottom: '20px'
+            }}>
+              {/* 1. Thuốc nổ Dynamite */}
               <div style={{
-                background: '#fee2e2',
-                border: '2px dashed #f87171',
-                borderRadius: '18px',
-                padding: '18px',
-                margin: '20px 0',
+                background: '#451a03',
+                border: '2px solid #d97706',
+                borderRadius: '12px',
+                padding: '12px 8px',
+                textAlign: 'center',
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'center',
-                gap: '6px'
+                justifyContent: 'space-between',
+                minHeight: '170px'
               }}>
-                <span style={{ fontSize: '13px', fontWeight: '700', color: '#991b1b' }}>
-                  Tổng số Trái Tim thực tế bạn kiếm được:
-                </span>
-                <span style={{ fontSize: '28px', fontWeight: '900', color: '#b91c1c' }}>
-                  +{levelsCompleted} ❤️
-                </span>
-                <span style={{ fontSize: '11.5px', color: '#7f1d1d' }}>
-                  (Đã cộng trực tiếp vào Số Dư Ví Tim của bạn!)
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                <div>
+                  <img src="/miner/dynamite.png" alt="Dynamite" style={{ height: '48px', display: 'block', margin: '0 auto 6px auto' }} />
+                  <div style={{ fontWeight: '800', fontSize: '13px', color: '#fca5a5' }}>Thuốc Nổ</div>
+                  <div style={{ fontSize: '11px', color: '#d6d3d1' }}>Nổ tan đá tảng ({dynamiteCount}/3)</div>
+                </div>
                 <button
                   type="button"
-                  onClick={handleStartGame}
+                  onClick={() => handleBuyShopItem('dynamite', 150)}
+                  disabled={cash < 150 || dynamiteCount >= 3}
                   style={{
-                    background: 'linear-gradient(135deg, #e06d7e 0%, #c95264 100%)',
+                    marginTop: '8px',
+                    background: cash >= 150 && dynamiteCount < 3 ? '#16a34a' : '#57534e',
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '14px',
-                    padding: '11px 22px',
-                    fontSize: '13.5px',
+                    borderRadius: '8px',
+                    padding: '6px',
                     fontWeight: '800',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 12px rgba(224, 109, 126, 0.3)'
+                    fontSize: '12px',
+                    cursor: cash >= 150 && dynamiteCount < 3 ? 'pointer' : 'not-allowed'
                   }}
                 >
-                  <RotateCcw size={15} />
-                  <span>Chơi Lại Ván Mới (-1 ❤️)</span>
+                  {dynamiteCount >= 3 ? 'Đầy kho' : '$150'}
                 </button>
+              </div>
 
+              {/* 2. Nước tăng lực */}
+              <div style={{
+                background: '#451a03',
+                border: '2px solid #d97706',
+                borderRadius: '12px',
+                padding: '12px 8px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                minHeight: '170px'
+              }}>
+                <div>
+                  <div style={{ fontSize: '42px', lineHeight: '48px', marginBottom: '6px' }}>🥤</div>
+                  <div style={{ fontWeight: '800', fontSize: '13px', color: '#86efac' }}>Nước Tăng Lực</div>
+                  <div style={{ fontSize: '11px', color: '#d6d3d1' }}>Kéo mọi thứ siêu nhanh</div>
+                </div>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => handleBuyShopItem('powerDrink', 200)}
+                  disabled={cash < 200 || hasPowerDrink}
                   style={{
-                    background: '#f3f4f6',
-                    color: '#374151',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '14px',
-                    padding: '11px 20px',
-                    fontSize: '13.5px',
-                    fontWeight: '700',
-                    cursor: 'pointer'
+                    marginTop: '8px',
+                    background: cash >= 200 && !hasPowerDrink ? '#16a34a' : '#57534e',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '6px',
+                    fontWeight: '800',
+                    fontSize: '12px',
+                    cursor: cash >= 200 && !hasPowerDrink ? 'pointer' : 'not-allowed'
                   }}
                 >
-                  Đóng
+                  {hasPowerDrink ? 'Đã có' : '$200'}
+                </button>
+              </div>
+
+              {/* 3. Cỏ 4 lá */}
+              <div style={{
+                background: '#451a03',
+                border: '2px solid #d97706',
+                borderRadius: '12px',
+                padding: '12px 8px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                minHeight: '170px'
+              }}>
+                <div>
+                  <div style={{ fontSize: '42px', lineHeight: '48px', marginBottom: '6px' }}>🍀</div>
+                  <div style={{ fontWeight: '800', fontSize: '13px', color: '#7dd3fc' }}>Cỏ 4 Lá</div>
+                  <div style={{ fontSize: '11px', color: '#d6d3d1' }}>Túi ? mở ra toàn tiền khủng</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleBuyShopItem('luckyClover', 100)}
+                  disabled={cash < 100 || hasLuckyClover}
+                  style={{
+                    marginTop: '8px',
+                    background: cash >= 100 && !hasLuckyClover ? '#16a34a' : '#57534e',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '6px',
+                    fontWeight: '800',
+                    fontSize: '12px',
+                    cursor: cash >= 100 && !hasLuckyClover ? 'pointer' : 'not-allowed'
+                  }}
+                >
+                  {hasLuckyClover ? 'Đã có' : '$100'}
+                </button>
+              </div>
+
+              {/* 4. Sách đánh bóng */}
+              <div style={{
+                background: '#451a03',
+                border: '2px solid #d97706',
+                borderRadius: '12px',
+                padding: '12px 8px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                minHeight: '170px'
+              }}>
+                <div>
+                  <div style={{ fontSize: '42px', lineHeight: '48px', marginBottom: '6px' }}>💎</div>
+                  <div style={{ fontWeight: '800', fontSize: '13px', color: '#f0abfc' }}>Sách Đánh Bóng</div>
+                  <div style={{ fontSize: '11px', color: '#d6d3d1' }}>Kim Cương tăng +30% giá</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleBuyShopItem('diamondPolish', 180)}
+                  disabled={cash < 180 || hasDiamondPolish}
+                  style={{
+                    marginTop: '8px',
+                    background: cash >= 180 && !hasDiamondPolish ? '#16a34a' : '#57534e',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '6px',
+                    fontWeight: '800',
+                    fontSize: '12px',
+                    cursor: cash >= 180 && !hasDiamondPolish ? 'pointer' : 'not-allowed'
+                  }}
+                >
+                  {hasDiamondPolish ? 'Đã có' : '$180'}
                 </button>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Next Level Action */}
+            <div style={{ textAlign: 'center' }}>
+              <button
+                type="button"
+                onClick={handleNextLevel}
+                style={{
+                  background: 'linear-gradient(180deg, #facc15 0%, #eab308 100%)',
+                  color: '#713f12',
+                  border: '2px solid #ca8a04',
+                  borderRadius: '16px',
+                  padding: '12px 36px',
+                  fontSize: '16px',
+                  fontWeight: '900',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+                  letterSpacing: '0.5px'
+                }}
+              >
+                TIẾP TỤC MÀN {level + 1} ➡️
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 4. GAME OVER SCREEN */}
+        {gameState === 'GAME_OVER' && (
+          <div style={{
+            background: '#fffbf5',
+            padding: '36px 24px',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '8px' }}>🏁</div>
+            <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#b91c1c' }}>
+              HẾT GIỜ! CHƯA ĐẠT MỤC TIÊU
+            </h2>
+            <p style={{ color: '#78716c', fontSize: '13.5px', marginTop: '4px' }}>
+              Bạn dừng chân tại Màn {level} với số điểm ${cash} (Mục tiêu: ${targetGoal}).
+            </p>
+
+            <div style={{
+              background: '#fee2e2',
+              border: '2px dashed #f87171',
+              borderRadius: '16px',
+              padding: '18px',
+              maxWidth: '380px',
+              margin: '20px auto',
+              color: '#991b1b'
+            }}>
+              <div style={{ fontSize: '13px', fontWeight: '700' }}>
+                Tổng số Trái Tim thực tế bạn kiếm được:
+              </div>
+              <div style={{ fontSize: '32px', fontWeight: '900', color: '#b91c1c', margin: '4px 0' }}>
+                +{levelsCompleted} ❤️
+              </div>
+              <div style={{ fontSize: '12px', color: '#7f1d1d' }}>
+                (Đã cộng trực tiếp vào Số Dư Ví Tim của bạn!)
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={handleStartGame}
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '14px',
+                  padding: '11px 24px',
+                  fontSize: '14px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <RotateCcw size={16} />
+                <span>Chơi Lại Ván Mới (-1 ❤️)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  background: '#e5e7eb',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '14px',
+                  padding: '11px 20px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: 'pointer'
+                }}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
