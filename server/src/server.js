@@ -13,6 +13,7 @@ import * as authService from './services/authService.js';
 import * as heartService from './services/heartService.js';
 import * as letterService from './services/letterService.js';
 import * as milestoneService from './services/milestoneService.js';
+import * as minigameService from './services/minigameService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -189,6 +190,26 @@ export function createServerApp(dbPath = null) {
         sender_name: user.display_name,
         message
       });
+      res.json(result);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  // Minigame: Heart Miner Arcade
+  app.post('/api/minigame/start', authenticateToken, (req, res) => {
+    try {
+      const result = minigameService.startMinigame(req.user.id);
+      res.json(result);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/minigame/complete', authenticateToken, (req, res) => {
+    try {
+      const { sessionId, levelsCompleted } = req.body;
+      const result = minigameService.completeMinigame(req.user.id, sessionId, levelsCompleted);
       res.json(result);
     } catch (e) {
       res.status(400).json({ error: e.message });

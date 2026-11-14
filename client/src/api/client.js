@@ -81,5 +81,12 @@ export const api = {
     const formData = new FormData();
     formData.append('file', file);
     return request('/upload', { method: 'POST', body: formData });
-  }
+  },
+
+  // Minigame: Heart Miner
+  startMinigame: () => request('/minigame/start', { method: 'POST' }),
+  completeMinigame: (sessionId, levelsCompleted) => request('/minigame/complete', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId, levelsCompleted })
+  })
 };
