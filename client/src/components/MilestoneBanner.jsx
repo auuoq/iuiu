@@ -79,53 +79,36 @@ export function MilestoneBanner({ milestones = [], partner, onOpenWriter, onOpen
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* For Celebrant who has received the letter: SHOW BLOW CANDLE & OPEN LETTER */}
+          {/* For Celebrant who has received the letter: SINGLE UNIFIED CELEBRATION BUTTON */}
           {milestones[0].isReceiver && milestones[0].hasLetter && (
-            <>
-              {milestones[0].interactive_fx === 'candle_blow' && (
-                <button
-                  onClick={() => setActiveModalMilestone(milestones[0])}
-                  style={{
-                    background: '#ffd166',
-                    color: '#8a6230',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '9px 16px',
-                    fontSize: '13px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 3px 10px rgba(255, 209, 102, 0.4)'
-                  }}
-                >
-                  🎂 Thổi Nến Bánh Kem
-                </button>
-              )}
-
-              {milestones[0].letterId && onOpenLetter && (
-                <button
-                  onClick={() => onOpenLetter(milestones[0].letterId)}
-                  style={{
-                    background: 'var(--rose-primary)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '9px 16px',
-                    fontSize: '13px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 3px 10px rgba(224, 109, 126, 0.25)'
-                  }}
-                >
-                  <span>Mở Thư Bí Mật 💌</span>
-                </button>
-              )}
-            </>
+            <button
+              onClick={() => {
+                if (milestones[0].interactive_fx === 'candle_blow') {
+                  setActiveModalMilestone(milestones[0]);
+                } else if (milestones[0].letterId && onOpenLetter) {
+                  onOpenLetter(milestones[0].letterId);
+                }
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #ff758c 0%, #e06d7e 100%)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '14px',
+                padding: '10px 22px',
+                fontSize: '13.5px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 16px rgba(224, 109, 126, 0.35)',
+                transition: 'transform 0.15s, box-shadow 0.15s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <span>🎂 Thổi Nến & Mở Quà Bí Mật 💌</span>
+            </button>
           )}
 
           {/* For Writer who has NOT sent the letter yet: SHOW WRITE LETTER BUTTON */}
@@ -178,6 +161,7 @@ export function MilestoneBanner({ milestones = [], partner, onOpenWriter, onOpen
       {activeModalMilestone && (
         <CandleBlowModal
           milestone={activeModalMilestone}
+          partner={partner}
           onClose={() => setActiveModalMilestone(null)}
           onOpenLetterWriter={() => onOpenWriter && onOpenWriter(activeModalMilestone)}
           onOpenLetter={onOpenLetter}
