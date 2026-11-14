@@ -300,14 +300,11 @@ export default function App() {
           }}
         />
 
-        {/* 2 Columns Layout */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '24px',
-          alignItems: 'start'
+        {/* TẦNG 1: Bố Cục Thư & Tiện Ích Đôi (Cây Tình Yêu + Tặng Tim) */}
+        <div className="upper-layout-grid" style={{
+          marginBottom: '28px'
         }}>
-          {/* Column 1: Letters */}
+          {/* Cột 1: Hòm Thư Tình Yêu */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <LetterList
               letters={letters}
@@ -320,59 +317,65 @@ export default function App() {
             />
           </div>
 
-          {/* Column 2: Photo Scrapbook Board & Love Plant */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Scrapbook Board */}
-            <ScrapbookBoard coupleId={couple.id} currentUserId={currentUser.id} wsRef={wsRef} />
+          {/* Cột 2: Cây Tình Yêu Chung & Khung Tặng Tim (Xếp dọc cân đối chiều cao) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <LovePlantWidget
+              couple={couple}
+              onPlantWatered={(res) => {
+                setWalletBalance(res.balance);
+                setCouple(prev => ({ ...prev, plant_stage: res.plant_stage, plant_exp: res.plant_exp }));
+              }}
+            />
 
-            {/* Virtual Love Plant Widget & Gift Action */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
-              <LovePlantWidget
-                couple={couple}
-                onPlantWatered={(res) => {
-                  setWalletBalance(res.balance);
-                  setCouple(prev => ({ ...prev, plant_stage: res.plant_stage, plant_exp: res.plant_exp }));
-                }}
-              />
-
-              {/* Heart Gift Quick Box */}
-              <div style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '20px',
-                padding: '20px',
-                boxShadow: 'var(--shadow-warm)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                textAlign: 'center'
-              }}>
-                <div style={{ width: '44px', height: '44px', background: 'var(--rose-light)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
-                  <Gift size={22} color="var(--rose-primary)" />
-                </div>
-                <h4 style={{ fontSize: '15px', fontWeight: '800' }}>Tặng Tim Cho {partner.display_name}</h4>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 14px 0' }}>
-                  Tặng tim để người ấy có thêm ngân sách bóc thư và mở quà
-                </p>
-                <button
-                  onClick={() => setShowGiftModal(true)}
-                  style={{
-                    background: 'var(--rose-primary)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '8px 16px',
-                    fontSize: '12.5px',
-                    fontWeight: '700',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Gửi Quà Tặng ❤️
-                </button>
+            {/* Heart Gift Quick Box */}
+            <div style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '20px',
+              padding: '22px 20px',
+              boxShadow: 'var(--shadow-warm)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center'
+            }}>
+              <div style={{ width: '48px', height: '48px', background: 'var(--rose-light)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+                <Gift size={24} color="var(--rose-primary)" />
               </div>
+              <h4 style={{ fontSize: '15px', fontWeight: '800' }}>Tặng Tim Cho {partner.display_name}</h4>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '4px 0 16px 0', lineHeight: 1.45 }}>
+                Tặng tim để người ấy có thêm ngân sách bóc thư và mở quà bí mật
+              </p>
+              <button
+                onClick={() => setShowGiftModal(true)}
+                style={{
+                  background: 'var(--rose-primary)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '9px 20px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 12px rgba(224, 109, 126, 0.25)',
+                  transition: 'transform 0.15s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                Gửi Quà Tặng ❤️
+              </button>
             </div>
           </div>
+        </div>
+
+        {/* TẦNG 2: Góc Kỷ Niệm Của Hai Bạn (Rộng Toàn Bộ 1100px) */}
+        <div style={{ width: '100%', marginBottom: '24px' }}>
+          <ScrapbookBoard coupleId={couple.id} currentUserId={currentUser.id} wsRef={wsRef} />
         </div>
       </main>
 

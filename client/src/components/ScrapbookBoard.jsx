@@ -25,8 +25,8 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
       url: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=500&auto=format&fit=crop&q=80',
       caption: 'Lần đầu đi cà phê cùng nhau ☕',
       textColor: '#2b2621',
-      x: 30,
-      y: 40,
+      x: 40,
+      y: 50,
       rotation: -4,
       scale: 1,
       tapeStyle: 'pink',
@@ -37,9 +37,9 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
       url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop&q=80',
       caption: 'Chuyến đi biển đáng nhớ 🌊',
       textColor: '#2b2621',
-      x: 250,
-      y: 60,
-      rotation: 5,
+      x: 320,
+      y: 55,
+      rotation: 4,
       scale: 1,
       tapeStyle: 'mint',
       zIndex: 3
@@ -47,8 +47,8 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
   ];
 
   const defaultStickers = [
-    { id: 'stk-1', url: DEFAULT_STICKERS[0].url, x: 210, y: 15, rotation: 6, scale: 1, zIndex: 10 },
-    { id: 'stk-2', url: DEFAULT_STICKERS[1].url, x: 50, y: 350, rotation: -8, scale: 1, zIndex: 10 }
+    { id: 'stk-1', url: DEFAULT_STICKERS[0].url, x: 280, y: 30, rotation: 6, scale: 1, zIndex: 10 },
+    { id: 'stk-2', url: DEFAULT_STICKERS[1].url, x: 860, y: 220, rotation: -8, scale: 1, zIndex: 10 }
   ];
 
   const defaultNotes = [
@@ -56,8 +56,8 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
       id: 'note-1',
       text: 'Hôm nay nhớ em nhiều lắm! Nhớ ăn tối đúng giờ nha ❤️',
       color: 'yellow',
-      x: 270,
-      y: 280,
+      x: 600,
+      y: 100,
       rotation: -2,
       scale: 1,
       zIndex: 5
@@ -459,7 +459,7 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
           border: '2px dashed #dfd3c5',
           borderRadius: '20px',
           minHeight: '520px',
-          height: '540px',
+          height: '560px',
           position: 'relative',
           overflow: 'hidden',
           userSelect: 'none',

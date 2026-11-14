@@ -739,3 +739,17 @@ select {
   animation: fallPetal linear infinite;
   user-select: none;
 }
+
+/* Responsive Upper Layout Grid */
+.upper-layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .upper-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
