@@ -11,6 +11,7 @@ import { ScrapbookBoard } from './components/ScrapbookBoard.jsx';
 import { LovePlantWidget } from './components/LovePlantWidget.jsx';
 import { MilestoneBanner } from './components/MilestoneBanner.jsx';
 import { ProfileModal } from './components/ProfileModal.jsx';
+import { HeartMinerModal } from './components/HeartMinerModal.jsx';
 import { Heart, Gift, Sparkles, Send } from 'lucide-react';
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
   const [unlockingLetter, setUnlockingLetter] = useState(null);
   const [readingLetter, setReadingLetter] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showHeartMiner, setShowHeartMiner] = useState(false);
   const [showGiftModal, setShowGiftModal] = useState(false);
   const [giftAmount, setGiftAmount] = useState(10);
   const [giftMessage, setGiftMessage] = useState('Thưởng cho em/anh nè!');
@@ -268,6 +270,7 @@ export default function App() {
         daysTogether={daysTogether}
         onPoke={handlePoke}
         onOpenProfile={() => setShowProfileModal(true)}
+        onOpenMiner={() => setShowHeartMiner(true)}
         onLogout={() => { setToken(null); setCurrentUser(null); setCouple(null); }}
       />
 
@@ -368,6 +371,49 @@ export default function App() {
                 onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
               >
                 Gửi Quà Tặng ❤️
+              </button>
+            </div>
+
+            {/* Quick Heart Miner Arcade Banner */}
+            <div style={{
+              background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+              border: '1.5px solid #fde68a',
+              borderRadius: '20px',
+              padding: '16px 18px',
+              boxShadow: 'var(--shadow-warm)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ fontSize: '28px', userSelect: 'none' }}>⛏️</div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#92400e' }}>
+                    Đào Tim Cổ Điển
+                  </div>
+                  <div style={{ fontSize: '11.5px', color: '#b45309' }}>
+                    Game Đào Vàng • Thưởng +1 ❤️ mỗi màn!
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHeartMiner(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '8px 14px',
+                  fontSize: '12.5px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 10px rgba(245, 158, 11, 0.3)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Chơi Ngay 🎮
               </button>
             </div>
           </div>
@@ -501,6 +547,15 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Heart Miner Arcade Modal */}
+      <HeartMinerModal
+        isOpen={showHeartMiner}
+        onClose={() => setShowHeartMiner(false)}
+        currentUserId={currentUser?.id}
+        walletBalance={walletBalance}
+        onWalletUpdated={(newBal) => setWalletBalance(newBal)}
+      />
     </div>
   );
 }

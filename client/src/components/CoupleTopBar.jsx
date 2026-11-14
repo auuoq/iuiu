@@ -2,7 +2,7 @@ import React from 'react';
 import { Heart, Sparkles, LogOut, Send, User, Settings } from 'lucide-react';
 import { AudioPlayer } from './AudioPlayer.jsx';
 
-export function CoupleTopBar({ user, partner, couple, walletBalance, daysTogether, onPoke, onLogout, onOpenProfile }) {
+export function CoupleTopBar({ user, partner, couple, walletBalance, daysTogether, onPoke, onLogout, onOpenProfile, onOpenMiner }) {
   const user1 = user;
   const user2 = partner || { display_name: 'Đang đợi người yêu...', avatar_url: null };
 
@@ -133,6 +133,36 @@ export function CoupleTopBar({ user, partner, couple, walletBalance, daysTogethe
         {/* Right: Actions, Wallet & Audio */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <AudioPlayer />
+
+          {/* Heart Miner Arcade Button */}
+          {onOpenMiner && (
+            <button
+              onClick={onOpenMiner}
+              title="Chơi Game Đào Tim Cổ Điển để kiếm thêm tim"
+              style={{
+                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                border: '1.5px solid #f59e0b',
+                color: '#92400e',
+                padding: '6px 13px',
+                borderRadius: '20px',
+                fontSize: '12.5px',
+                fontWeight: '800',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(245, 158, 11, 0.2)',
+                transition: 'transform 0.15s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <span>⛏️ Đào Tim</span>
+              <span style={{ fontSize: '10px', background: '#b45309', color: '#fff', padding: '1px 5px', borderRadius: '8px' }}>
+                HOT
+              </span>
+            </button>
+          )}
 
           {/* Heart Wallet Badge */}
           <div style={{
