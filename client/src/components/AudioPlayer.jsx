@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, Music, SkipForward, SkipBack, Play, Pause, Plus, ListMusic } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Volume2, VolumeX, Music, SkipForward, SkipBack, Play, Pause, Plus, ListMusic, X } from 'lucide-react';
 
 export const ROMANTIC_PLAYLIST = [
   {
@@ -231,54 +232,68 @@ export function AudioPlayer() {
         </button>
       </div>
 
-      {/* Playlist & Custom URL Modal */}
-      {showPlaylistModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(43, 38, 33, 0.55)',
-          backdropFilter: 'blur(5px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1200,
-          padding: '20px'
-        }}>
-          <div style={{
-            background: 'var(--paper-cream)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '24px',
-            maxWidth: '440px',
-            width: '100%',
-            padding: '26px',
-            boxShadow: 'var(--shadow-warm)',
-            position: 'relative'
-          }}>
+      {/* Playlist & Custom URL Modal with createPortal to escape header backdropFilter */}
+      {showPlaylistModal && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setShowPlaylistModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(26, 21, 18, 0.65)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#fffdfa',
+              border: '1.5px solid var(--border-subtle)',
+              borderRadius: '24px',
+              maxWidth: '460px',
+              width: '100%',
+              padding: '26px',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
+              position: 'relative',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+          >
             <button
               onClick={() => setShowPlaylistModal(false)}
               style={{
                 position: 'absolute',
-                top: '18px',
-                right: '18px',
-                background: 'none',
+                top: '16px',
+                right: '16px',
+                background: '#f5ede4',
                 border: 'none',
-                color: 'var(--text-light)',
+                borderRadius: '50%',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-ink)',
                 cursor: 'pointer'
               }}
             >
-              ×
+              <X size={16} />
             </button>
 
-            <h3 style={{ fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-ink)' }}>
               <Music size={18} color="var(--rose-primary)" />
               <span>Giai Điệu Tình Yêu (Online)</span>
             </h3>
-            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '16px' }}>
+            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '4px', marginBottom: '16px' }}>
               Nhạc nền phát trực tiếp khi có mạng, không cần tải về máy
             </p>
 
             {/* Song List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto', marginBottom: '18px' }}>
               {playlist.map((track, idx) => (
                 <div
                   key={track.id}
@@ -290,16 +305,17 @@ export function AudioPlayer() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '8px 12px',
+                    padding: '9px 12px',
                     borderRadius: '12px',
-                    border: currentTrackIndex === idx ? '1px solid var(--rose-primary)' : '1px solid var(--border-subtle)',
+                    border: currentTrackIndex === idx ? '1.5px solid var(--rose-primary)' : '1px solid var(--border-subtle)',
                     background: currentTrackIndex === idx ? 'var(--rose-light)' : '#fff',
                     cursor: 'pointer',
-                    fontSize: '13px'
+                    fontSize: '13px',
+                    transition: 'all 0.15s'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: currentTrackIndex === idx ? 'var(--rose-primary)' : '#999', fontWeight: '700' }}>
+                    <span style={{ color: currentTrackIndex === idx ? 'var(--rose-primary)' : '#999', fontWeight: '700', minWidth: '18px' }}>
                       {idx + 1}.
                     </span>
                     <div>
@@ -329,7 +345,7 @@ export function AudioPlayer() {
                 placeholder="Tên bài hát kỷ niệm..."
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
-                style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)', fontSize: '12.5px', marginBottom: '6px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '12.5px', marginBottom: '8px', boxSizing: 'border-box' }}
               />
               <input
                 type="url"
@@ -337,7 +353,7 @@ export function AudioPlayer() {
                 placeholder="Dán link âm thanh online (.mp3, stream)..."
                 value={customUrl}
                 onChange={(e) => setCustomUrl(e.target.value)}
-                style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)', fontSize: '12.5px', marginBottom: '8px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '12.5px', marginBottom: '10px', boxSizing: 'border-box' }}
               />
               <button
                 type="submit"
@@ -347,8 +363,8 @@ export function AudioPlayer() {
                   color: '#fff',
                   border: 'none',
                   borderRadius: '10px',
-                  padding: '8px',
-                  fontSize: '12.5px',
+                  padding: '9px',
+                  fontSize: '13px',
                   fontWeight: '700',
                   cursor: 'pointer'
                 }}
@@ -357,7 +373,8 @@ export function AudioPlayer() {
               </button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Global CSS for rotating vinyl */}
