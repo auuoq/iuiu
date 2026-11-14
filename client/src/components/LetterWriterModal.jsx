@@ -149,10 +149,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
     if (letterToEdit?.stickers && letterToEdit.stickers.length > 0) {
       return letterToEdit.stickers;
     }
-    return [
-      { id: 'stk-1', url: DEFAULT_STICKERS[0].url, x: 80, y: 15, scale: 1, rotation: 6 },
-      { id: 'stk-2', url: DEFAULT_STICKERS[1].url, x: 12, y: 78, scale: 1, rotation: -8 }
-    ];
+    return [];
   });
 
   const [selectedStickerId, setSelectedStickerId] = useState(null);

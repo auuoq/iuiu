@@ -212,31 +212,34 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
 
           {/* Envelope Details when SEALED */}
           <div style={{
-            padding: '160px 24px 28px 24px',
+            padding: '175px 24px 24px 24px',
             textAlign: 'center',
             position: 'relative',
             zIndex: 10
           }}>
-            {/* Title & Sender */}
             <div style={{
-              fontFamily: 'var(--font-handwriting)',
-              fontSize: '28px',
-              color: '#fff',
-              textShadow: '0 2px 6px rgba(0,0,0,0.3)',
-              lineHeight: 1.2
+              color: 'rgba(255,255,255,0.95)',
+              fontSize: '13.5px',
+              fontWeight: '700',
+              letterSpacing: '0.3px',
+              textShadow: '0 1px 4px rgba(0,0,0,0.25)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
             }}>
-              {letter.title}
-            </div>
-
-            <div style={{
-              color: 'rgba(255,255,255,0.92)',
-              fontSize: '13px',
-              marginTop: '6px',
-              fontWeight: '600',
-              letterSpacing: '0.3px'
-            }}>
-              Gửi từ: <strong style={{ color: '#fff' }}>{letter.sender_name}</strong>
-              {quiz && <span style={{ marginLeft: '8px', background: 'rgba(255,255,255,0.25)', padding: '2px 8px', borderRadius: '10px', fontSize: '11.5px' }}>🔒 Có câu đố</span>}
+              <span>Gửi từ:</span>
+              <strong style={{ color: '#fff' }}>{letter.sender_name}</strong>
+              {quiz && (
+                <span style={{
+                  background: 'rgba(255,255,255,0.25)',
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  fontSize: '11.5px',
+                  fontWeight: '600'
+                }}>
+                  🔒 Có câu đố
+                </span>
+              )}
             </div>
 
             {/* Error Message if any */}
@@ -247,7 +250,7 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
                 padding: '8px 12px',
                 borderRadius: '10px',
                 fontSize: '12.5px',
-                marginTop: '12px',
+                marginTop: '10px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px'
@@ -258,7 +261,7 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
             )}
 
             {/* Interactive button showing heart cost directly */}
-            <div style={{ marginTop: '18px' }}>
+            <div style={{ marginTop: '14px' }}>
               <button
                 type="button"
                 onClick={handleHeartClick}
@@ -269,7 +272,7 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
                   gap: '8px',
                   background: 'rgba(255, 255, 255, 0.95)',
                   color: '#945869',
-                  padding: '9px 24px',
+                  padding: '10px 24px',
                   borderRadius: '24px',
                   fontSize: '13.5px',
                   fontWeight: '800',

@@ -104,7 +104,8 @@ export function LetterReaderModal({ letter, onClose }) {
           overflowY: 'auto',
           padding: '38px',
           boxShadow: '0 25px 50px rgba(0,0,0,0.22)',
-          position: 'relative'
+          position: 'relative',
+          zIndex: 10
         }}
       >
         {/* Custom Uploaded Background Image if any */}
@@ -226,9 +227,11 @@ export function LetterReaderModal({ letter, onClose }) {
               {waxIcon}
             </div>
             <div>
-              <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--rose-primary)', textTransform: 'uppercase' }}>
-                {letter.mood_tag || 'Lá Thư Tình'}
-              </div>
+              {letter.mood_tag && !letter.title?.toLowerCase().includes(letter.mood_tag.toLowerCase().replace(/[\u{1F300}-\u{1FAFF}]/gu, '').trim()) && (
+                <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--rose-primary)', textTransform: 'uppercase' }}>
+                  {letter.mood_tag}
+                </div>
+              )}
               <h2 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-ink)', letterSpacing: '-0.2px', marginTop: '2px' }}>
                 {letter.title}
               </h2>
@@ -303,23 +306,6 @@ export function LetterReaderModal({ letter, onClose }) {
             </div>
           </div>
         )}
-
-        {/* Footer Note */}
-        <div style={{
-          marginTop: '30px',
-          padding: '12px 16px',
-          background: 'rgba(255, 255, 255, 0.75)',
-          borderRadius: '14px',
-          border: '1px solid var(--border-subtle)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          fontSize: '12.5px',
-          color: '#2e7d32'
-        }}>
-          <BookmarkCheck size={18} flexShrink={0} />
-          <span>Lá thư này đã được lưu vĩnh viễn trong Hòm Thư Kỷ Niệm. Bạn có thể mở ra đọc lại bất cứ lúc nào!</span>
-        </div>
       </div>
     </div>
   );

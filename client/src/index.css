@@ -3,26 +3,26 @@
   --bg-card: #ffffff;
   --bg-kraft: #f5ede0;
   --paper-cream: #fffdf9;
-  
+
   --text-ink: #2b2621;
   --text-muted: #797169;
   --text-light: #a3998f;
-  
+
   --rose-primary: #e06d7e;
   --rose-hover: #c95264;
   --rose-light: #fff0f3;
   --rose-border: #ffd1dc;
-  
+
   --wax-red: #b83232;
   --wax-shadow: #801e1e;
-  
+
   --gold-accent: #d4a373;
   --green-plant: #4a7c59;
-  
+
   --border-subtle: #ebdcd0;
   --shadow-warm: 0 10px 25px rgba(68, 52, 38, 0.07);
   --shadow-polaroid: 0 6px 18px rgba(43, 38, 33, 0.12);
-  
+
   --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-handwriting: 'Caveat', cursive, sans-serif;
   --font-serif: 'Playfair Display', Georgia, serif;
@@ -41,14 +41,17 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
-  background-image: 
+  background-image:
     radial-gradient(rgba(224, 109, 126, 0.04) 1px, transparent 1px),
     radial-gradient(rgba(212, 163, 115, 0.04) 1px, transparent 1px);
   background-size: 24px 24px;
   background-position: 0 0, 12px 12px;
 }
 
-button, input, textarea, select {
+button,
+input,
+textarea,
+select {
   font-family: inherit;
 }
 
@@ -57,13 +60,16 @@ button, input, textarea, select {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-sand);
 }
+
 ::-webkit-scrollbar-thumb {
   background: #d8c8ba;
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #baa795;
 }
@@ -85,9 +91,11 @@ button, input, textarea, select {
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
 }
+
 .wax-seal:hover {
   transform: scale(1.08);
 }
+
 .wax-seal:active {
   transform: scale(0.95);
 }
@@ -104,10 +112,12 @@ button, input, textarea, select {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   user-select: none;
 }
+
 .polaroid:hover {
   box-shadow: 0 12px 28px rgba(43, 38, 33, 0.18);
   z-index: 10;
 }
+
 .polaroid-img {
   width: 100%;
   height: 140px;
@@ -115,6 +125,7 @@ button, input, textarea, select {
   background-color: #f0eae1;
   border-radius: 2px;
 }
+
 .polaroid-caption {
   font-family: var(--font-handwriting);
   font-size: 16px;
@@ -135,21 +146,31 @@ button, input, textarea, select {
   width: 60px;
   height: 16px;
   background: rgba(224, 109, 126, 0.65);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   pointer-events: none;
 }
+
 .washi-tape-mint {
   background: rgba(138, 196, 179, 0.65);
 }
+
 .washi-tape-yellow {
   background: rgba(246, 218, 140, 0.7);
 }
 
 /* Animation mở thư nổ tim */
 @keyframes heartFloat {
-  0% { transform: translateY(0) scale(0.8); opacity: 1; }
-  100% { transform: translateY(-80px) scale(1.4); opacity: 0; }
+  0% {
+    transform: translateY(0) scale(0.8);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-80px) scale(1.4);
+    opacity: 0;
+  }
 }
+
 .floating-heart {
   position: fixed;
   pointer-events: none;
@@ -179,17 +200,15 @@ button, input, textarea, select {
 .airmail-stripe {
   height: 8px;
   width: 100%;
-  background: repeating-linear-gradient(
-    -45deg,
-    #e06d7e,
-    #e06d7e 12px,
-    #fff 12px,
-    #fff 18px,
-    #5a8bbd 18px,
-    #5a8bbd 30px,
-    #fff 30px,
-    #fff 36px
-  );
+  background: repeating-linear-gradient(-45deg,
+      #e06d7e,
+      #e06d7e 12px,
+      #fff 12px,
+      #fff 18px,
+      #5a8bbd 18px,
+      #5a8bbd 30px,
+      #fff 30px,
+      #fff 36px);
 }
 
 
@@ -206,9 +225,21 @@ button, input, textarea, select {
 }
 
 @keyframes sealCrackBurst {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.3) rotate(8deg); filter: brightness(1.2); }
-  100% { transform: scale(1.6); opacity: 0; filter: blur(6px); }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.3) rotate(8deg);
+    filter: brightness(1.2);
+  }
+
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+    filter: blur(6px);
+  }
 }
 
 .seal-breaking {
@@ -216,8 +247,15 @@ button, input, textarea, select {
 }
 
 @keyframes letterSlideUp {
-  0% { transform: translateY(0); opacity: 0.9; }
-  100% { transform: translateY(-70px) scale(1.03); opacity: 1; }
+  0% {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: translateY(-70px) scale(1.03);
+    opacity: 1;
+  }
 }
 
 .letter-sheet-emerging {
@@ -229,7 +267,7 @@ button, input, textarea, select {
   position: absolute;
   padding: 14px 16px;
   border-radius: 4px;
-  box-shadow: 0 4px 14px rgba(43, 38, 33, 0.12), 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 14px rgba(43, 38, 33, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
   font-family: var(--font-handwriting);
   font-size: 17px;
   line-height: 1.45;
@@ -369,7 +407,7 @@ button, input, textarea, select {
   clip-path: polygon(0 100%, 50% 25%, 100% 100%);
   background: var(--env-fold-bg, linear-gradient(180deg, #bb7e8f 0%, #a46779 100%));
   border-radius: 0 0 18px 18px;
-  box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
   z-index: 6;
   pointer-events: none;
 }
@@ -385,7 +423,7 @@ button, input, textarea, select {
   transform-origin: top center;
   transition: transform 0.85s cubic-bezier(0.4, 0, 0.2, 1), z-index 0.3s;
   z-index: 15;
-  box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -398,8 +436,17 @@ button, input, textarea, select {
 }
 
 @keyframes heartClaspPulse {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25)); }
-  50% { transform: scale(1.1); filter: drop-shadow(0 6px 14px rgba(255, 180, 200, 0.5)); }
+
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.25));
+  }
+
+  50% {
+    transform: scale(1.1);
+    filter: drop-shadow(0 6px 14px rgba(255, 180, 200, 0.5));
+  }
 }
 
 .heart-clasp-btn {
@@ -407,7 +454,7 @@ button, input, textarea, select {
   height: 52px;
   background: var(--env-clasp-bg, #a36173);
   border-radius: 50%;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25), inset 0 2px 3px rgba(255,255,255,0.3);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25), inset 0 2px 3px rgba(255, 255, 255, 0.3);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -415,7 +462,7 @@ button, input, textarea, select {
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s;
   animation: heartClaspPulse 2.2s infinite ease-in-out;
   z-index: 25;
-  border: 2px solid rgba(255,255,255,0.35);
+  border: 2px solid rgba(255, 255, 255, 0.35);
 }
 
 .heart-clasp-btn:hover {
@@ -441,10 +488,12 @@ button, input, textarea, select {
   min-height: 74px;
   background-color: #faf7f2;
 }
+
 .postage-stamp:hover {
   transform: scale(1.06) rotate(1deg);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
 }
+
 .postage-stamp-inner {
   width: 100%;
   height: 100%;
@@ -457,17 +506,20 @@ button, input, textarea, select {
   background: #ffffff;
   border-radius: 2px;
 }
+
 .postage-stamp-img {
   width: 48px;
   height: 48px;
   object-fit: cover;
   border-radius: 2px;
 }
+
 .postage-stamp-icon {
   font-size: 26px;
   line-height: 1;
   margin-bottom: 2px;
 }
+
 .postage-stamp-denomination {
   font-size: 9px;
   font-weight: 800;
@@ -499,19 +551,18 @@ button, input, textarea, select {
   pointer-events: none;
   box-shadow: inset 0 0 0 2px rgba(160, 50, 60, 0.12);
 }
+
 .postmark-lines {
   position: absolute;
   right: -24px;
   top: 18px;
   width: 28px;
   height: 18px;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(160, 50, 60, 0.35) 2px,
-    rgba(160, 50, 60, 0.35) 3.5px
-  );
+  background: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      rgba(160, 50, 60, 0.35) 2px,
+      rgba(160, 50, 60, 0.35) 3.5px);
   transform: rotate(-12deg);
   pointer-events: none;
 }
@@ -534,9 +585,11 @@ button, input, textarea, select {
   transition: box-shadow 0.15s ease;
   user-select: none;
 }
+
 .canvas-interactive-item:active {
   cursor: grabbing;
 }
+
 .canvas-interactive-item.is-selected {
   outline: 2px dashed var(--rose-primary);
   outline-offset: 4px;
@@ -544,6 +597,7 @@ button, input, textarea, select {
   box-shadow: 0 4px 12px rgba(224, 109, 126, 0.3);
   z-index: 50;
 }
+
 .canvas-item-controls {
   position: absolute;
   top: -34px;
@@ -555,11 +609,12 @@ button, input, textarea, select {
   background: #ffffff;
   padding: 2px 6px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   border: 1px solid var(--border-subtle);
   z-index: 60;
   white-space: nowrap;
 }
+
 .canvas-ctrl-btn {
   background: none;
   border: none;
@@ -573,19 +628,31 @@ button, input, textarea, select {
   color: var(--text-ink);
   font-size: 11px;
 }
+
 .canvas-ctrl-btn:hover {
   background: var(--rose-light);
   color: var(--rose-primary);
 }
+
 .canvas-ctrl-btn.danger:hover {
   background: #ffebee;
   color: #c62828;
 }
 
 @keyframes letterCardSlideOut {
-  0% { transform: translateY(0); opacity: 0; }
-  30% { opacity: 1; }
-  100% { transform: translateY(-75px); opacity: 1; }
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-75px);
+    opacity: 1;
+  }
 }
 
 .letter-sheet-card {
@@ -602,7 +669,7 @@ button, input, textarea, select {
 
 .paper-pressed-flowers {
   background: #fff8f9 !important;
-  background-image: 
+  background-image:
     radial-gradient(rgba(224, 109, 126, 0.08) 1px, transparent 1px),
     linear-gradient(to bottom, #fffafc 0%, #fff0f3 100%) !important;
   border: 1px solid #ffd6e0 !important;
@@ -610,7 +677,7 @@ button, input, textarea, select {
 
 .paper-caro-ribbon {
   background: #ffffff !important;
-  background-image: 
+  background-image:
     linear-gradient(#f0e6e6 1px, transparent 1px),
     linear-gradient(90deg, #f0e6e6 1px, transparent 1px) !important;
   background-size: 20px 20px !important;
@@ -635,29 +702,40 @@ button, input, textarea, select {
 .wax-seal-red {
   background: radial-gradient(circle at 35% 35%, #d64545 0%, #b83232 70%, #801e1e 100%) !important;
 }
+
 .wax-seal-gold {
   background: radial-gradient(circle at 35% 35%, #ffd166 0%, #c49235 70%, #8a5e12 100%) !important;
 }
+
 .wax-seal-pink {
   background: radial-gradient(circle at 35% 35%, #ffa6b9 0%, #e06d7e 70%, #a43848 100%) !important;
 }
+
 .wax-seal-purple {
   background: radial-gradient(circle at 35% 35%, #b185db 0%, #7b4b94 70%, #4b2361 100%) !important;
 }
 
 /* Falling Rose Petals Keyframe */
 @keyframes fallPetal {
-  0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
-  15% { opacity: 0.85; }
-  100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: translateY(105vh) rotate(360deg);
+    opacity: 0;
+  }
 }
 
 .falling-petal {
   position: fixed;
   pointer-events: none;
-  z-index: 1050;
+  z-index: 2;
   animation: fallPetal linear infinite;
   user-select: none;
 }
-
-
