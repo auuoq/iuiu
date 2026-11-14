@@ -12,6 +12,9 @@
     "test": "npm --prefix server test",
     "test:server": "npm --prefix server test"
   },
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "devDependencies": {
     "concurrently": "^10.0.6"
   },
