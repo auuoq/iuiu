@@ -129,7 +129,7 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
         </button>
 
         {/* ================= THE PHYSICAL CRAFT ENVELOPE ================= */}
-        <div className={`craft-envelope-pocket ${envClass}`}>
+        <div className={`craft-envelope-pocket ${envClass}`} style={{ minHeight: '330px' }}>
           {/* Top Curved Flap (Nắp gập cong có khóa trái tim) */}
           <div className={`craft-envelope-top-flap ${isOpeningFlap ? 'is-open' : ''}`}>
             {/* Heart Clasp Button in the center */}
@@ -190,52 +190,53 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
             </div>
           )}
 
-          {/* Envelope Front Details when SEALED */}
+          {/* Custom Postage Stamp at top-right (zIndex 35 to stay above the flap) */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '16px',
+              right: '20px',
+              transform: 'rotate(5deg)',
+              zIndex: 35
+            }}
+          >
+            <PostageStamp
+              design={envCfg.stamp_design || 'rose'}
+              imageUrl={envCfg.stamp_image}
+              cost={letter.open_heart_cost}
+              size="md"
+              showPostmark={true}
+              postmarkDate={letter.created_at}
+            />
+          </div>
+
+          {/* Envelope Details when SEALED */}
           <div style={{
-            padding: '100px 28px 30px 28px',
+            padding: '160px 24px 28px 24px',
             textAlign: 'center',
             position: 'relative',
             zIndex: 10
           }}>
-            {/* Custom Postage Stamp at top-right */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '18px',
-                right: '24px',
-                transform: 'rotate(5deg)'
-              }}
-            >
-              <PostageStamp
-                design={envCfg.stamp_design || 'rose'}
-                imageUrl={envCfg.stamp_image}
-                cost={letter.open_heart_cost}
-                size="md"
-                showPostmark={true}
-                postmarkDate={letter.created_at}
-              />
-            </div>
-
             {/* Title & Sender */}
             <div style={{
               fontFamily: 'var(--font-handwriting)',
-              fontSize: '32px',
+              fontSize: '28px',
               color: '#fff',
-              textShadow: '0 2px 6px rgba(0,0,0,0.25)',
+              textShadow: '0 2px 6px rgba(0,0,0,0.3)',
               lineHeight: 1.2
             }}>
               {letter.title}
             </div>
 
             <div style={{
-              color: 'rgba(255,255,255,0.88)',
+              color: 'rgba(255,255,255,0.92)',
               fontSize: '13px',
               marginTop: '6px',
               fontWeight: '600',
               letterSpacing: '0.3px'
             }}>
               Gửi từ: <strong style={{ color: '#fff' }}>{letter.sender_name}</strong>
-              {quiz && <span style={{ marginLeft: '8px', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '10px', fontSize: '11.5px' }}>🔒 Có câu đố</span>}
+              {quiz && <span style={{ marginLeft: '8px', background: 'rgba(255,255,255,0.25)', padding: '2px 8px', borderRadius: '10px', fontSize: '11.5px' }}>🔒 Có câu đố</span>}
             </div>
 
             {/* Error Message if any */}
@@ -246,7 +247,7 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
                 padding: '8px 12px',
                 borderRadius: '10px',
                 fontSize: '12.5px',
-                marginTop: '16px',
+                marginTop: '12px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px'
@@ -257,7 +258,7 @@ export function LetterUnlockModal({ letter, userBalance, onClose, onUnlockSucces
             )}
 
             {/* Interactive button showing heart cost directly */}
-            <div style={{ marginTop: '50px' }}>
+            <div style={{ marginTop: '18px' }}>
               <button
                 type="button"
                 onClick={handleHeartClick}

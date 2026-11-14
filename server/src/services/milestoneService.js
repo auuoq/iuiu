@@ -115,24 +115,81 @@ export function checkUpcomingMilestones(coupleId, targetDateStr = null, user1 = 
 
   const milestones = db.prepare('SELECT * FROM milestones WHERE couple_id = ?').all(coupleId);
 
-  const todayMilestones = milestones.filter(m => {
+  const todayRaw = milestones.filter(m => {
     return m.event_date === monthDay || m.event_date === targetDateStr;
-  }).map(m => {
+  });
+
+  const todayMilestones = [];
+
+  for (const m of todayRaw) {
+    let milestoneLetters = [];
+    try {
+      milestoneLetters = db.prepare(`
+        SELECT id, sender_id, receiver_id, status, is_opened, title
+        FROM letters
+        WHERE couple_id = ? AND (
+          milestone_id = ? OR (status = 'sent' AND (mood_tag = ? OR title = ?))
+        ) AND status = 'sent'
+      `).all(coupleId, m.id, m.title, m.title);
+    } catch (e) {}
+
     let mustWrite = true;
+    let shouldShow = true;
+    let hasSentLetter = false;
+    let letterForMe = null;
+    let isWriter = false;
+    let isReceiver = false;
+
     if (couple && user1 && m.writer_rule) {
-      if (m.writer_rule === 'user1_only') {
-        mustWrite = user1.id === couple.user1_id;
-      } else if (m.writer_rule === 'user2_only') {
-        mustWrite = user1.id === couple.user2_id;
+      if (m.writer_rule === 'user1_only' || m.writer_rule === 'user2_only') {
+        const writerId = m.writer_rule === 'user1_only' ? couple.user1_id : couple.user2_id;
+        const receiverId = m.writer_rule === 'user1_only' ? couple.user2_id : couple.user1_id;
+
+        isWriter = user1.id === writerId;
+        isReceiver = user1.id === receiverId;
+        hasSentLetter = milestoneLetters.some(l => l.sender_id === writerId);
+        letterForMe = milestoneLetters.find(l => l.receiver_id === user1.id && l.sender_id === writerId);
+
+        if (isWriter) {
+          // B (writer) sees the banner to write; when written, sees "sent" confirmation
+          shouldShow = true;
+          mustWrite = !hasSentLetter;
+        } else if (isReceiver) {
+          // A (receiver / celebrant) ONLY SEES AFTER B HAS SENT THE LETTER!
+          // If B has not sent the letter, do NOT show to A so the surprise is preserved!
+          shouldShow = hasSentLetter;
+          mustWrite = false;
+        } else {
+          shouldShow = false;
+        }
       } else {
-        mustWrite = true;
+        // Both can write (e.g. Valentine, Anniversary, Christmas)
+        const myLetter = milestoneLetters.find(l => l.sender_id === user1.id);
+        letterForMe = milestoneLetters.find(l => l.receiver_id === user1.id);
+        shouldShow = true;
+        mustWrite = !myLetter;
+        hasSentLetter = Boolean(myLetter);
+        isWriter = true;
+        isReceiver = true;
       }
     } else if (user1 && user2) {
       const expected = getExpectedWriter(m.category, user1, user2);
       mustWrite = expected === 'both' || expected === user1.id;
+      shouldShow = true;
     }
-    return { ...m, mustWrite };
-  });
+
+    if (shouldShow) {
+      todayMilestones.push({
+        ...m,
+        mustWrite,
+        hasLetter: Boolean(letterForMe),
+        hasSent: hasSentLetter,
+        letterId: letterForMe ? letterForMe.id : null,
+        isWriter,
+        isReceiver
+      });
+    }
+  }
 
   return { daysTogether, todayMilestones, allMilestones: milestones };
 }

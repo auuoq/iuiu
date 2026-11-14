@@ -57,6 +57,12 @@ export function createLetter({
 
   const letterId = Number(res.lastInsertRowid);
 
+  if (milestone_id && (status === 'sent')) {
+    try {
+      db.prepare('UPDATE milestones SET is_completed = 1 WHERE id = ?').run(milestone_id);
+    } catch (e) {}
+  }
+
   if (quiz && quiz.question && quiz.correct_answer) {
     db.prepare(`
       INSERT INTO letter_quizzes (
@@ -117,13 +123,14 @@ export function updateLetter(letterId, userId, data) {
   const envelope_config = data.envelope_config !== undefined
     ? (typeof data.envelope_config === 'object' ? JSON.stringify(data.envelope_config) : data.envelope_config)
     : letter.envelope_config;
+  const milestone_id = data.milestone_id !== undefined ? data.milestone_id : letter.milestone_id;
 
   db.prepare(`
     UPDATE letters
     SET title = ?, mood_tag = ?, content = ?, paper_style = ?,
         photos = ?, stickers = ?, bgm_track = ?, wax_seal = ?, scent_tag = ?,
         bg_image = ?, envelope_config = ?,
-        open_heart_cost = ?, time_lock_at = ?, status = ?
+        open_heart_cost = ?, time_lock_at = ?, status = ?, milestone_id = ?
     WHERE id = ?
   `).run(
     title,
@@ -140,8 +147,15 @@ export function updateLetter(letterId, userId, data) {
     open_heart_cost,
     time_lock_at,
     status,
+    milestone_id,
     letterId
   );
+
+  if (milestone_id && status === 'sent') {
+    try {
+      db.prepare('UPDATE milestones SET is_completed = 1 WHERE id = ?').run(milestone_id);
+    } catch (e) {}
+  }
 
   if (data.quiz !== undefined) {
     db.prepare('DELETE FROM letter_quizzes WHERE letter_id = ?').run(letterId);

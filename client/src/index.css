@@ -192,29 +192,7 @@ button, input, textarea, select {
   );
 }
 
-.postage-stamp {
-  width: 56px;
-  height: 68px;
-  background: #fff;
-  border: 2px dashed #cfb9a5;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  transform: rotate(3deg);
-  user-select: none;
-}
 
-.postage-stamp::after {
-  content: 'POSTAGE';
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  color: #a38c76;
-  margin-top: 2px;
-}
 
 /* Envelope Flap 3D Fold */
 .envelope-top-flap {
@@ -370,6 +348,18 @@ button, input, textarea, select {
   transition: all 0.5s ease;
 }
 
+.craft-envelope-front {
+  position: relative;
+  width: 100%;
+  min-height: 290px;
+  background: var(--env-pocket-bg, linear-gradient(145deg, #b87a8b 0%, #aa6d7f 100%));
+  border-radius: 18px;
+  box-shadow: 0 25px 50px var(--env-shadow, rgba(70, 35, 45, 0.35)), inset 0 2px 4px rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--env-pocket-border, #945869);
+  overflow: visible;
+  transition: all 0.5s ease;
+}
+
 .craft-envelope-bottom-fold {
   position: absolute;
   bottom: 0;
@@ -389,7 +379,7 @@ button, input, textarea, select {
   top: 0;
   left: 0;
   right: 0;
-  height: 62%;
+  height: 50%;
   background: var(--env-flap-bg, linear-gradient(180deg, #c48797 0%, #b27385 100%));
   border-radius: 18px 18px 50% 50% / 18px 18px 85% 85%;
   transform-origin: top center;

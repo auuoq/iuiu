@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { X, Sparkles } from 'lucide-react';
 
-export function CandleBlowModal({ milestone, onClose, onOpenLetterWriter }) {
+export function CandleBlowModal({ milestone, onClose, onOpenLetterWriter, onOpenLetter }) {
   const [blownOut, setBlownOut] = useState(false);
 
   const handleBlowCandle = () => {
@@ -171,7 +171,14 @@ export function CandleBlowModal({ milestone, onClose, onOpenLetterWriter }) {
               Nến đã tắt và điều ước đã bay đến các vì sao! Người yêu đã chuẩn bị một lá thư bí mật cho bạn rồi đấy.
             </p>
             <button
-              onClick={() => { onClose(); onOpenLetterWriter(); }}
+              onClick={() => {
+                onClose();
+                if (milestone.letterId && onOpenLetter) {
+                  onOpenLetter(milestone.letterId);
+                } else if (onOpenLetterWriter) {
+                  onOpenLetterWriter();
+                }
+              }}
               style={{
                 background: 'var(--rose-primary)',
                 color: '#fff',
@@ -183,7 +190,7 @@ export function CandleBlowModal({ milestone, onClose, onOpenLetterWriter }) {
                 cursor: 'pointer'
               }}
             >
-              Xem Thư Kỷ Niệm 💌
+              {milestone.letterId ? 'Mở Thư Bí Mật Của Người Ấy 💌' : 'Xem Thư Kỷ Niệm 💌'}
             </button>
           </div>
         )}

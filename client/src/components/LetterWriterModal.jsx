@@ -95,13 +95,23 @@ export const ANIMATED_STICKERS = [
   }
 ];
 
-export function LetterWriterModal({ partner, letterToEdit = null, existingCategories = [], onClose, onLetterSaved }) {
+export function LetterWriterModal({ partner, letterToEdit = null, initialMilestone = null, existingCategories = [], onClose, onLetterSaved }) {
   const isEditing = Boolean(letterToEdit);
   const [activeTab, setActiveTab] = useState('edit'); // 'edit' | 'decor' | 'envelope'
 
+  const [milestoneId, setMilestoneId] = useState(letterToEdit?.milestone_id || initialMilestone?.id || null);
+
   // Letter Basic Content
-  const [title, setTitle] = useState(letterToEdit?.title || '');
-  const [moodTag, setMoodTag] = useState(letterToEdit?.mood_tag || 'Mở khi nhớ nhau');
+  const [title, setTitle] = useState(() => {
+    if (letterToEdit?.title) return letterToEdit.title;
+    if (initialMilestone?.title) return `Gửi ${partner?.display_name || 'người ấy'} nhân dịp ${initialMilestone.title}`;
+    return '';
+  });
+  const [moodTag, setMoodTag] = useState(() => {
+    if (letterToEdit?.mood_tag) return letterToEdit.mood_tag;
+    if (initialMilestone?.title) return initialMilestone.title;
+    return 'Mở khi nhớ nhau';
+  });
   const [content, setContent] = useState(letterToEdit?.content || '');
   const [paperStyle, setPaperStyle] = useState(letterToEdit?.paper_style || 'kraft');
   const [fontFamily, setFontFamily] = useState(letterToEdit?.font_family || "'Caveat', cursive, sans-serif");
@@ -121,6 +131,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
   const [envelopeColor, setEnvelopeColor] = useState(letterToEdit?.envelope_config?.color || 'dusty_rose');
   const [stampDesign, setStampDesign] = useState(letterToEdit?.envelope_config?.stamp_design || 'rose');
   const [stampImage, setStampImage] = useState(letterToEdit?.envelope_config?.stamp_image || null);
+  const [envelopeViewSide, setEnvelopeViewSide] = useState('front'); // 'front' | 'back'
 
   // Custom Letter Paper Background
   const [bgImage, setBgImage] = useState(letterToEdit?.bg_image || null);
@@ -356,6 +367,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
     try {
       const payload = {
         receiver_id: partner.id,
+        milestone_id: milestoneId,
         title: title.trim(),
         mood_tag: moodTag.trim(),
         content: content.trim(),
@@ -1514,52 +1526,230 @@ export function LetterWriterModal({ partner, letterToEdit = null, existingCatego
         {/* ================= TAB 3: PHONG BÌ & TEM THƯ (OUTER ENVELOPE & STAMPS) ================= */}
         {activeTab === 'envelope' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* View Switcher: Front (Address & Stamp) vs Back (Flap & Wax Seal) */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{
+                display: 'inline-flex',
+                background: '#eae3d6',
+                borderRadius: '24px',
+                padding: '4px',
+                gap: '4px',
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setEnvelopeViewSide('front')}
+                  style={{
+                    padding: '7px 18px',
+                    borderRadius: '20px',
+                    border: 'none',
+                    background: envelopeViewSide === 'front' ? '#ffffff' : 'transparent',
+                    color: envelopeViewSide === 'front' ? 'var(--rose-primary)' : 'var(--text-muted)',
+                    fontWeight: '800',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    boxShadow: envelopeViewSide === 'front' ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <span>🏷️ Mặt Trước (Dán Tem & Tên Nhận)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEnvelopeViewSide('back')}
+                  style={{
+                    padding: '7px 18px',
+                    borderRadius: '20px',
+                    border: 'none',
+                    background: envelopeViewSide === 'back' ? '#ffffff' : 'transparent',
+                    color: envelopeViewSide === 'back' ? 'var(--rose-primary)' : 'var(--text-muted)',
+                    fontWeight: '800',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    boxShadow: envelopeViewSide === 'back' ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <span>💌 Mặt Sau (Nắp Gập & Dấu Sáp)</span>
+                </button>
+              </div>
+            </div>
+
             {/* Live 3D Envelope Preview */}
             <div style={{
               background: '#f8f4ec',
               border: '1px solid #ebd9c8',
               borderRadius: '20px',
-              padding: '40px 20px',
+              padding: '30px 20px',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center'
             }}>
-              <div className={`craft-envelope-container env-${envelopeColor}`} style={{ maxWidth: '440px' }}>
-                <div className={`craft-envelope-pocket env-${envelopeColor}`} style={{ minHeight: '260px' }}>
-                  {/* Top Flap */}
-                  <div className="craft-envelope-top-flap">
-                    <div style={{ position: 'absolute', bottom: '-24px', zIndex: 25 }}>
-                      <div className="heart-clasp-btn" style={{ width: '48px', height: '48px' }}>
-                        <Heart size={24} color="#fff" fill="#fff" />
+              {envelopeViewSide === 'front' ? (
+                /* FRONT VIEW: Clear Postage Stamp, Airmail Badge, and Vintage Address Card */
+                <div className={`craft-envelope-container env-${envelopeColor}`} style={{ maxWidth: '460px' }}>
+                  <div className={`craft-envelope-front env-${envelopeColor}`} style={{ minHeight: '280px', position: 'relative' }}>
+                    {/* Airmail Vintage Label at Top-Left */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '18px',
+                      left: '20px',
+                      zIndex: 10,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px'
+                    }}>
+                      <div style={{
+                        background: '#1b3b6f',
+                        color: '#ffffff',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: '9.5px',
+                        fontWeight: '800',
+                        letterSpacing: '1px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}>
+                        <span>✈️ PAR AVION</span>
+                      </div>
+                      <div style={{
+                        border: '1px solid rgba(255,255,255,0.7)',
+                        borderRadius: '4px',
+                        padding: '2px 6px',
+                        fontSize: '8.5px',
+                        color: 'rgba(255,255,255,0.9)',
+                        fontWeight: '700',
+                        letterSpacing: '0.5px'
+                      }}>
+                        BY AIR MAIL
+                      </div>
+                    </div>
+
+                    {/* Postage Stamp at Top-Right (Prominent, crisp, completely visible!) */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '16px',
+                      right: '20px',
+                      transform: 'rotate(4deg)',
+                      zIndex: 20,
+                      transition: 'transform 0.25s ease'
+                    }}>
+                      <PostageStamp
+                        design={stampDesign}
+                        imageUrl={stampImage}
+                        cost={openHeartCost}
+                        size="lg"
+                        showPostmark={true}
+                      />
+                    </div>
+
+                    {/* Vintage Postal Address Card (Nhãn Bưu Thiếp Tình Yêu) in the center */}
+                    <div style={{
+                      margin: '82px 20px 18px 20px',
+                      background: 'rgba(255, 253, 249, 0.96)',
+                      border: '1.5px dashed #c4a482',
+                      borderRadius: '14px',
+                      padding: '16px 20px',
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
+                      textAlign: 'center',
+                      position: 'relative',
+                      zIndex: 10
+                    }}>
+                      <div style={{
+                        fontSize: '11px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1.5px',
+                        color: '#9e6d42',
+                        fontWeight: '800',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}>
+                        <span>💌 THƯ TÌNH GỬI ĐẾN</span>
+                      </div>
+                      <div style={{
+                        fontFamily: 'var(--font-handwriting)',
+                        fontSize: '26px',
+                        color: '#2b2621',
+                        marginTop: '6px',
+                        lineHeight: 1.25,
+                        fontWeight: '700',
+                        wordBreak: 'break-word'
+                      }}>
+                        {title || 'Lá Thư Chưa Đặt Tên'}
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '12px',
+                        color: '#665c54',
+                        marginTop: '10px',
+                        borderTop: '1px dashed rgba(196,164,130,0.45)',
+                        paddingTop: '8px',
+                        flexWrap: 'wrap',
+                        gap: '6px'
+                      }}>
+                        <div>
+                          Kính gửi: <strong style={{ color: 'var(--rose-primary)' }}>{partner.display_name}</strong>
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#9e6d42' }}>
+                          Bưu Chính Tình Yêu 💕
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Bottom Fold */}
-                  <div className="craft-envelope-bottom-fold" />
-
-                  {/* Stamp at Top Right */}
-                  <div style={{ position: 'absolute', top: '16px', right: '22px', transform: 'rotate(5deg)', zIndex: 10 }}>
-                    <PostageStamp
-                      design={stampDesign}
-                      imageUrl={stampImage}
-                      cost={openHeartCost}
-                      size="md"
-                      showPostmark={true}
-                    />
-                  </div>
-
-                  {/* Envelope Front Details */}
-                  <div style={{ padding: '90px 24px 20px 24px', textAlign: 'center', position: 'relative', zIndex: 8 }}>
-                    <div style={{ fontFamily: 'var(--font-handwriting)', fontSize: '28px', color: '#fff', textShadow: '0 2px 6px rgba(0,0,0,0.25)', lineHeight: 1.2 }}>
-                      {title || 'Thư Gửi Người Thương'}
+                </div>
+              ) : (
+                /* BACK VIEW: Top Flap, Clasp/Wax Seal, and Bottom Fold */
+                <div className={`craft-envelope-container env-${envelopeColor}`} style={{ maxWidth: '460px' }}>
+                  <div className={`craft-envelope-pocket env-${envelopeColor}`} style={{ minHeight: '280px' }}>
+                    {/* Top Flap */}
+                    <div className="craft-envelope-top-flap">
+                      <div style={{ position: 'absolute', bottom: '-24px', zIndex: 25 }}>
+                        <div className="heart-clasp-btn" style={{ width: '48px', height: '48px' }}>
+                          <Heart size={24} color="#fff" fill="#fff" />
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13px', marginTop: '6px', fontWeight: '600' }}>
-                      Gửi đến: <strong style={{ color: '#fff' }}>{partner.display_name}</strong>
+
+                    {/* Bottom Fold */}
+                    <div className="craft-envelope-bottom-fold" />
+
+                    {/* Back Information when Sealed */}
+                    <div style={{ padding: '165px 24px 24px 24px', textAlign: 'center', position: 'relative', zIndex: 10 }}>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(255,255,255,0.25)',
+                        backdropFilter: 'blur(4px)',
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        color: '#fff',
+                        fontSize: '12.5px',
+                        fontWeight: '700',
+                        textShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }}>
+                        <Sparkles size={14} />
+                        <span>Niêm phong bởi LoveCapsule</span>
+                      </div>
+                      <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', marginTop: '6px', fontWeight: '500' }}>
+                        Đối phương sẽ chạm vào khóa trái tim để mở lá thư này ✨
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Customizer Controls: 1. Envelope Colors, 2. Postage Stamps */}

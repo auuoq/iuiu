@@ -25,6 +25,7 @@ export default function App() {
   // Modals
   const [showWriter, setShowWriter] = useState(false);
   const [letterToEdit, setLetterToEdit] = useState(null);
+  const [activeMilestoneForLetter, setActiveMilestoneForLetter] = useState(null);
   const [unlockingLetter, setUnlockingLetter] = useState(null);
   const [readingLetter, setReadingLetter] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -179,6 +180,7 @@ export default function App() {
   const handleLetterSaved = (savedLetter) => {
     setShowWriter(false);
     setLetterToEdit(null);
+    setActiveMilestoneForLetter(null);
     setLetters(prev => {
       const idx = prev.findIndex(l => l.id === savedLetter.id);
       if (idx >= 0) {
@@ -189,6 +191,10 @@ export default function App() {
       return [savedLetter, ...prev];
     });
     spawnHearts(8);
+    // Refresh milestones so banner updates to sent or completed state immediately
+    api.getMilestones().then(mRes => {
+      setMilestones(mRes.todayMilestones || []);
+    }).catch(e => console.warn(e));
   };
 
   const handleLetterSelect = (letter) => {
@@ -282,7 +288,16 @@ export default function App() {
         <MilestoneBanner
           milestones={milestones}
           partner={partner}
-          onOpenWriter={() => setShowWriter(true)}
+          onOpenWriter={(m) => {
+            setActiveMilestoneForLetter(m || null);
+            setShowWriter(true);
+          }}
+          onOpenLetter={(letterId) => {
+            const targetLetter = letters.find(l => l.id === letterId);
+            if (targetLetter) {
+              handleLetterSelect(targetLetter);
+            }
+          }}
         />
 
         {/* 2 Columns Layout */}
@@ -378,10 +393,12 @@ export default function App() {
         <LetterWriterModal
           partner={partner}
           letterToEdit={letterToEdit}
+          initialMilestone={activeMilestoneForLetter}
           existingCategories={Array.from(new Set(letters.map(l => l.mood_tag).filter(Boolean)))}
           onClose={() => {
             setShowWriter(false);
             setLetterToEdit(null);
+            setActiveMilestoneForLetter(null);
           }}
           onLetterSaved={handleLetterSaved}
         />
