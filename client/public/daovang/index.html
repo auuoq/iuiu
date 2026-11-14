@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#1b1109">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Đào Vàng Cổ Điển - game thả móc đào vàng kinh điển, chơi được trên điện thoại và máy tính.">
+<!-- Trang này chạy BÊN TRONG iframe của trang chủ, không phải trang để người
+     dùng vào thẳng. Nó mang đúng tiêu đề "Đào Vàng Cổ Điển" — tức từ khoá chính
+     của cả site — nhưng lại không có nội dung nào ngoài canvas game. Nếu Google
+     lập chỉ mục nó, một trang trống sẽ cạnh tranh trực tiếp với trang chủ.
+     canonical trỏ về trang chủ để gom mọi tín hiệu về đúng nơi. -->
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="https://daovangcodien.com/">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Đào Vàng">
+<meta name="format-detection" content="telephone=no">
+<title>Đào Vàng Cổ Điển</title>
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b1109'/%3E%3Cpath d='M16 5c6 0 10 3.5 10 7 0 1.6-1.2 2.6-2.6 2.2-1.4-.4-1.6-1.9-3.4-2.4-2-.6-4.4-.6-6.4 0-1.8.5-2 2-3.4 2.4C8.8 14.6 7.6 13.6 7.6 12 7.6 8.5 10 5 16 5z' fill='%23ffb02e'/%3E%3Ccircle cx='16' cy='21' r='6' fill='%23ffd45e'/%3E%3Ccircle cx='13.8' cy='19' r='2' fill='%23fff2c2'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231b1109'/%3E%3Ccircle cx='16' cy='18' r='9' fill='%23ffd45e'/%3E%3C/svg%3E">
+
+<link rel="manifest" href="manifest.json">
+<!-- Không preload atlas: lớp mobile-layer sẽ chọn .webp hay .png tuỳ trình duyệt,
+     preload cứng một định dạng sẽ tải trùng gần 1MB trên di động. -->
+<!-- Tăng số ?v= mỗi khi sửa css/style.css hoặc js/mobile-layer.js để trình duyệt
+     lấy bản mới thay vì bản đã lưu đệm. -->
+<link rel="stylesheet" href="css/style.css?v=25" type="text/css"/>
+<style>
+  /* Standalone clean mode for LoveCapsule */
+  :root {
+    --sidebar-w: 0px !important;
+  }
+  #gameContainer {
+    right: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  #btn-rank, #rank-sidebar, #rank-modal, #rank-panel, #name-modal {
+    display: none !important;
+  }
+  #loading.is-hidden {
+    display: none !important;
+  }
+  #orientation[aria-hidden="true"], #orientation:not(.is-visible) {
+    display: none !important;
+  }
+  #gameContainer canvas {
+    cursor: pointer !important;
+  }
+</style>
+<script>
+window.onerror = function (msg, url, line, col, err) {
+  console.error('[GoldMiner Error]', msg, 'at', url, line, col, err);
+};
+</script>
+<script src="js/mobile-layer.js?v=31"></script>
+<script src="js/lovecapsule-bridge.js?v=3" defer></script>
+</head>
+<body>
+
+<div id="gameContainer"></div>
+
+<div id="hud" aria-hidden="false">
+  <button id="btn-fullscreen" class="hud-btn" type="button" hidden
+          aria-label="Toàn màn hình" title="Toàn màn hình">
+    <svg class="icon-expand" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none"
+            stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+    <svg class="icon-collapse" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none"
+            stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <button id="btn-rank" class="hud-btn" type="button" hidden
+          aria-label="Bảng xếp hạng" title="Bảng xếp hạng">
+    <span class="hud-btn__emoji" aria-hidden="true">🏆</span>
+  </button>
+
+  <button id="btn-pause" class="hud-btn" type="button" hidden
+          aria-label="Tạm dừng" title="Tạm dừng (Esc)">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="7" y="5" width="3.6" height="14" rx="1.2" fill="currentColor"/>
+      <rect x="13.4" y="5" width="3.6" height="14" rx="1.2" fill="currentColor"/>
+    </svg>
+  </button>
+
+  <button id="btn-dynamite" class="hud-btn hud-btn--action" type="button" hidden
+          aria-label="Ném thuốc nổ" title="Ném thuốc nổ">
+    <!-- Chính cây thuốc nổ trong game, cắt từ atlas (frame dnMenu1.png). -->
+    <img src="assets/icons/dynamite.png" alt="" width="18" height="35" draggable="false">
+  </button>
+</div>
+
+<div id="loading" role="status" aria-live="polite">
+  <div class="loading__inner">
+    <svg class="loading__pick" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M8 46c10-22 30-32 48-34-4 17-16 33-34 42z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="26" y="30" width="7" height="30" rx="3" transform="rotate(38 29 45)" fill="currentColor"/>
+    </svg>
+    <h1 class="loading__title">Đào Vàng Cổ Điển</h1>
+    <div class="loading__bar"><i></i></div>
+    <p class="loading__hint">Đang tải trò chơi…</p>
+  </div>
+</div>
+
+<!-- Bảng xếp hạng. Cùng một thẻ #rank-panel được chuyển qua lại giữa
+     #rank-sidebar (máy tính) và #rank-modal (di động). -->
+<aside id="rank-sidebar" hidden></aside>
+
+<div id="rank-modal" hidden>
+  <div class="rank-modal__inner"></div>
+</div>
+
+<div id="rank-panel">
+  <div class="rank-head">
+    <span aria-hidden="true">🏆🏆</span> Daily Ranking
+    <button id="rank-close" class="rank-close" type="button" aria-label="Đóng">✕</button>
+  </div>
+
+  <div class="rank-tabs" role="tablist">
+    <button class="rank-tab is-active" data-period="day" type="button">Hôm nay</button>
+    <button class="rank-tab" data-period="week" type="button">Tuần</button>
+    <button class="rank-tab" data-period="month" type="button">Tháng</button>
+    <button class="rank-tab" data-period="year" type="button">Năm</button>
+  </div>
+
+  <ol class="rank-list" id="rank-list"></ol>
+
+  <p class="rank-mine" id="rank-mine">Đang tải…</p>
+
+  <div class="rank-name">
+    <input id="rank-name-input" type="text" maxlength="50" autocomplete="off"
+           spellcheck="false" aria-label="Tên hiển thị">
+    <button id="rank-name-save" type="button">Lưu</button>
+  </div>
+</div>
+
+<!-- Hỏi tên sau khi kết thúc lượt chơi -->
+<div id="name-modal" hidden>
+  <div class="name-card">
+    <div class="name-head">
+      <span class="name-title"><span aria-hidden="true">✏️</span> Tên của bạn</span>
+      <button id="name-share" class="name-share" type="button">
+        <span aria-hidden="true">🔗</span> Chia sẻ
+      </button>
+      <button id="name-close" class="name-close" type="button" aria-label="Đóng">✕</button>
+    </div>
+    <p class="name-score" id="name-score"></p>
+    <div class="name-body">
+      <input id="name-input" type="text" maxlength="50" autocomplete="off"
+             spellcheck="false" placeholder="Tên của bạn" aria-label="Tên của bạn">
+      <button id="name-save" type="button">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<div id="paused" role="dialog" aria-hidden="true" aria-label="Tạm dừng">
+  <div class="paused__card">
+    <p class="paused__title">Tạm dừng</p>
+    <button id="btn-resume" class="paused__resume" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="currentColor"/></svg>
+      Tiếp tục
+    </button>
+    <p class="paused__hint">Đồng hồ đã dừng. Chạm ra ngoài để chơi tiếp.</p>
+  </div>
+</div>
+
+<div id="orientation" role="alertdialog" aria-hidden="true">
+  <div class="orientation__inner">
+    <svg class="orientation__icon" viewBox="0 0 96 96" aria-hidden="true">
+      <rect x="34" y="10" width="28" height="52" rx="5" fill="none" stroke="currentColor" stroke-width="4"/>
+      <path d="M20 74a34 34 0 0 0 56 0" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      <path d="M76 74l-9-4m9 4l-4 9" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+    <p class="orientation__title">Hãy xoay ngang máy</p>
+    <p class="orientation__hint">Trò chơi được tối ưu tuyệt đẹp khi xoay ngang điện thoại.</p>
+    <button id="btn-portrait-anyway" type="button" style="margin-top: 18px; background: rgba(255,255,255,0.18); border: 1.5px solid rgba(255,212,94,0.6); color: #ffd45e; padding: 10px 22px; border-radius: 24px; font-size: 13.5px; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+      Chơi tiếp màn hình dọc 📱
+    </button>
+  </div>
+</div>
+
+<div id="safe-area-probe" aria-hidden="true"></div>
+
+<script>
+window.ga = window.ga || function () {};
+</script>
+<script src="version.js"></script>
+<script src="goldminer.min.js"></script>
+<script>
+(function () {
+  var gameCreated = false;
+  var origOnload = null;
+
+  Object.defineProperty(window, 'onload', {
+    configurable: true,
+    enumerable: true,
+    get: function () {
+      return origOnload;
+    },
+    set: function (fn) {
+      origOnload = fn;
+      if (document.readyState === 'complete') {
+        runOnce();
+      }
+    }
+  });
+
+  function runOnce() {
+    if (gameCreated) return;
+    if (typeof window.dvcdInstall === 'function') {
+      try { window.dvcdInstall(); } catch (e) {}
+    }
+    if (typeof origOnload === 'function') {
+      gameCreated = true;
+      origOnload();
+    }
+  }
+
+  window.addEventListener('load', runOnce);
+})();
+</script>
+
+</body>
+</html>

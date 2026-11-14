@@ -123,3 +123,4 @@
   - Run `npm --prefix client run build`
 - [ ] **Step 5.3: Commit Task 5**
   - Git commit: `feat(app): integrate Heart Miner arcade into main navigation and verify end-to-end`
+

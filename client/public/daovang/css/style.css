@@ -1,0 +1,815 @@
+/* ==========================================================================
+   Đào Vàng Cổ Điển — lớp giao diện ngoài canvas
+   Bảng màu: hầm mỏ (nâu đất tối) + vàng quặng.
+   ========================================================================== */
+
+:root {
+  --mine-900: #0d0805;
+  --mine-800: #1b1109;
+  --mine-700: #2a1b0f;
+  --mine-600: #3d2817;
+  --gold-500: #ffb02e;
+  --gold-400: #ffd45e;
+  --gold-200: #fff2c2;
+  --text: #f3e3c6;
+  --text-dim: #b39a76;
+
+  --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+             Arial, sans-serif;
+
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* Chặn kéo-để-tải-lại và bounce-scroll giữa ván chơi. */
+  overscroll-behavior: none;
+  /* Chặn double-tap zoom / pinch zoom trên canvas game. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  font-family: var(--ui-font);
+  color: var(--text);
+  background: var(--mine-900);
+}
+
+body {
+  /* Nền lấp phần letterbox quanh canvas: vệt sáng đèn mỏ trên nền đất. */
+  background:
+    radial-gradient(120% 90% at 50% 0%, #3a2413 0%, rgba(58, 36, 19, 0) 60%),
+    radial-gradient(80% 60% at 50% 100%, #241708 0%, rgba(36, 23, 8, 0) 70%),
+    var(--mine-900);
+}
+
+/* --- Khung game --------------------------------------------------------- */
+
+#gameContainer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: var(--sidebar-w);        /* chừa chỗ cho sidebar xếp hạng */
+  display: block;
+  overflow: hidden;
+}
+
+#gameContainer canvas {
+  display: block;
+  touch-action: none;
+  outline: none;
+}
+
+/* Viền mềm quanh canvas cho màn hình rộng, để phần letterbox trông có chủ ý. */
+@media (min-width: 900px) and (pointer: fine) {
+  #gameContainer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 140px 40px rgba(0, 0, 0, .55);
+  }
+}
+
+/* --- Nút điều khiển nổi trên canvas -------------------------------------- */
+
+#hud {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: var(--sidebar-w);  /* dừng ở mép sidebar, nếu không nút phải bị che */
+  z-index: 10;
+  pointer-events: none;   /* chỉ các nút mới nhận chạm, phần còn lại rơi vào game */
+}
+
+.hud-btn {
+  position: absolute;
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  /* Tối thiểu 44px theo khuyến nghị vùng chạm trên di động. */
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid rgba(255, 208, 110, .35);
+  border-radius: 14px;
+  background: rgba(27, 17, 9, .62);
+  color: var(--gold-400);
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: transform .12s ease, background .12s ease;
+}
+
+.hud-btn svg { width: 24px; height: 24px; display: block; }
+
+.hud-btn:active {
+  transform: scale(.92);
+  background: rgba(255, 176, 46, .28);
+}
+
+.hud-btn[hidden] { display: none; }
+
+/* Đặt ngay DƯỚI thanh HUD của game và bám mép canvas, nếu không nút sẽ đè lên
+   nhãn "TG:" / "Cấp:" ở góc trên phải. --canvas-x/--hud-h do mobile-layer.js
+   tính lại mỗi lần đổi kích thước. */
+#btn-fullscreen {
+  top: calc(var(--canvas-y, 0px) + var(--hud-h, 0px) + 8px);
+  right: max(calc(var(--canvas-x, 0px) + 8px), calc(var(--safe-r) + 8px));
+}
+
+#btn-fullscreen .icon-collapse { display: none; }
+body.is-fullscreen #btn-fullscreen .icon-expand { display: none; }
+body.is-fullscreen #btn-fullscreen .icon-collapse { display: block; }
+
+/* Nút tạm dừng: góc trên trái, ngay dưới thanh HUD - đối xứng với nút toàn
+   màn hình bên phải và không đè lên chữ Tiền / Mục tiêu. */
+#btn-pause {
+  top: calc(var(--canvas-y, 0px) + var(--hud-h, 0px) + 8px);
+  left: max(calc(var(--canvas-x, 0px) + 8px), calc(var(--safe-l) + 8px));
+}
+
+/* Nút thuốc nổ: to hơn, đặt trong tầm ngón cái bên phải. Nền tối trung tính để
+   cây thuốc nổ đỏ trong game nổi bật lên. */
+.hud-btn--action {
+  width: 62px;
+  height: 62px;
+  border-radius: 20px;
+  border-color: rgba(255, 150, 60, .45);
+  background: rgba(28, 15, 8, .72);
+  bottom: max(calc(var(--canvas-y, 0px) + 14px), calc(var(--safe-b) + 14px));
+  right: max(calc(var(--canvas-x, 0px) + 14px), calc(var(--safe-r) + 14px));
+}
+
+.hud-btn--action img {
+  display: block;
+  width: auto;
+  height: 34px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .7));
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* Có thuốc nổ nhưng chưa tới lúc dùng được: làm mờ để không mời gọi bấm. */
+.hud-btn--action {
+  opacity: .45;
+  transition: opacity .15s ease, transform .12s ease, background .12s ease;
+}
+
+/* Dùng được ngay (móc đang kéo vật nặng): sáng lên và đập nhẹ. */
+.hud-btn--action.is-ready {
+  opacity: 1;
+  border-color: rgba(255, 190, 70, .95);
+  background: rgba(96, 30, 10, .82);
+  animation: dyn-pulse 1.1s ease-in-out infinite;
+}
+
+.hud-btn--action.is-ready:active {
+  animation: none;
+  transform: scale(.92);
+}
+
+/* Số thuốc nổ còn lại */
+.hud-btn--action::after {
+  content: attr(data-count);
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: var(--gold-500);
+  color: #3a1c05;
+  font: 700 12px/22px var(--ui-font);
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+}
+
+/* --- Lớp phủ dùng chung -------------------------------------------------- */
+
+#loading,
+#orientation {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: calc(var(--safe-t) + 16px) calc(var(--safe-r) + 16px)
+           calc(var(--safe-b) + 16px) calc(var(--safe-l) + 16px);
+  background:
+    radial-gradient(90% 70% at 50% 40%, var(--mine-700) 0%, var(--mine-900) 75%);
+}
+
+/* --- Màn hình tải -------------------------------------------------------- */
+
+.loading__inner { max-width: 22rem; }
+
+.loading__pick {
+  width: 72px;
+  height: 72px;
+  color: var(--gold-500);
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .6));
+  animation: swing 1.4s ease-in-out infinite;
+  transform-origin: 70% 30%;
+}
+
+.loading__title {
+  margin: 14px 0 18px;
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: var(--gold-400);
+  text-shadow: 0 2px 0 #7a4a10, 0 4px 14px rgba(0, 0, 0, .7);
+}
+
+.loading__bar {
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(0, 0, 0, .45);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .8);
+  overflow: hidden;
+}
+
+.loading__bar i {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--gold-500), var(--gold-200));
+  animation: slide 1.2s ease-in-out infinite;
+}
+
+/* Khi có tiến trình thật từ bộ nạp thì chuyển từ chạy vô định sang đo được. */
+.loading__bar.is-determinate i {
+  animation: none;
+  width: 4%;
+  transition: width .25s ease;
+}
+
+.loading__hint {
+  margin: 12px 0 0;
+  font-size: .9rem;
+  color: var(--text-dim);
+}
+
+#loading.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .45s ease, visibility 0s .45s;
+}
+
+/* --- Bảng xếp hạng ------------------------------------------------------- */
+
+:root { --sidebar-w: 0px; }        /* ranking.js đặt lại khi bật sidebar */
+
+.hud-btn__emoji { font-size: 22px; line-height: 1; }
+
+/* Nút mở bảng xếp hạng: xếp ngay dưới nút tạm dừng, cùng cột bên trái.
+   46px chiều cao nút + 8px khoảng cách = 54px. */
+#btn-rank {
+  top: calc(var(--canvas-y, 0px) + var(--hud-h, 0px) + 62px);
+  left: max(calc(var(--canvas-x, 0px) + 8px), calc(var(--safe-l) + 8px));
+}
+
+/* Cột bên phải trên máy tính */
+#rank-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--sidebar-w);
+  z-index: 12;
+  display: flex;
+  padding: 12px 12px 12px 6px;
+}
+
+#rank-sidebar[hidden] { display: none; }
+
+/* Hộp phủ trên di động */
+#rank-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-t) + 12px) calc(var(--safe-r) + 12px)
+           calc(var(--safe-b) + 12px) calc(var(--safe-l) + 12px);
+  background: rgba(10, 6, 3, .66);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+#rank-modal[hidden] { display: none; }
+
+.rank-modal__inner {
+  display: flex;
+  width: min(420px, 100%);
+  max-height: 100%;
+}
+
+/* Thẻ bảng xếp hạng - dùng chung cho cả hai chế độ.
+   Cùng tông với các bảng vẽ trong canvas: nền hầm mỏ tối, viền vàng quặng. */
+#rank-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 2px solid rgba(255, 176, 46, .55);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(60, 38, 20, .96), rgba(20, 12, 6, .96));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .55);
+  font-family: var(--ui-font);
+  color: var(--text);
+}
+
+#rank-panel[hidden] { display: none; }
+
+.rank-head {
+  position: relative;
+  flex: none;
+  padding: 14px 40px 12px;
+  border-bottom: 1px solid rgba(255, 176, 46, .22);
+  text-align: center;
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--gold-400);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .5);
+}
+
+.rank-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 15px;
+  cursor: pointer;
+  display: none;                   /* chỉ hiện ở chế độ hộp phủ */
+}
+
+#rank-modal .rank-close { display: block; }
+
+.rank-tabs {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.rank-tab {
+  flex: 1;
+  min-height: 32px;
+  padding: 0 6px;
+  border: 1px solid rgba(255, 208, 110, .28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .05);
+  color: var(--text);
+  font: 600 .82rem var(--ui-font);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .12s ease, border-color .12s ease;
+}
+
+.rank-tab:hover { background: rgba(255, 176, 46, .16); }
+
+.rank-tab.is-active {
+  border-color: rgba(255, 176, 46, .9);
+  background: linear-gradient(180deg, var(--gold-500), #e08c12);
+  color: #3a1c05;
+}
+
+.rank-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  font-size: .9rem;
+}
+
+.rank-row:nth-child(odd) { background: rgba(255, 255, 255, .035); }
+
+.rank-row.is-me {
+  background: rgba(255, 176, 46, .16);
+  box-shadow: inset 2px 0 0 var(--gold-500);
+}
+
+.rank-row__no {
+  flex: none;
+  width: 26px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.rank-row__no.is-medal { font-size: 1.05rem; }
+
+.rank-row__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-row__score {
+  flex: none;
+  font-weight: 800;
+  color: var(--gold-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.rank-empty,
+.rank-mine {
+  flex: none;
+  margin: 0;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(255, 176, 46, .22);
+  text-align: center;
+  font-size: .8rem;
+  color: var(--text-dim);
+}
+
+.rank-empty { border-top: 0; }
+
+.rank-name {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+#rank-name-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 208, 110, .28);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, .32);
+  font: 400 .88rem var(--ui-font);
+  color: var(--text);
+}
+
+#rank-name-input::placeholder { color: var(--text-dim); }
+
+#rank-name-input:focus {
+  outline: 2px solid var(--gold-500);
+  outline-offset: -1px;
+}
+
+#rank-name-save {
+  flex: none;
+  min-height: 38px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--gold-500), #e08c12);
+  color: #3a1c05;
+  font: 700 .88rem var(--ui-font);
+  cursor: pointer;
+}
+
+#rank-name-save:disabled { opacity: .5; cursor: default; }
+
+/* ---------------------------------------------------------------------------
+   KHUNG NHÌN THẤP (điện thoại nằm ngang)
+   ---------------------------------------------------------------------------
+   Đo trên khung 844x390: phần khung cố định của hộp ăn hết 203px
+   (đầu 49 + tab 52 + dòng "của tôi" 42 + ô tên 60), cộng 24px đệm của lớp phủ
+   là 227px. Danh sách chỉ còn ~160px, và trong iframe thật — vốn thấp hơn nữa
+   vì còn thanh Thoát và thanh địa chỉ trình duyệt — nó co xuống dưới một dòng,
+   nên hàng đầu bảng hiện ra như một lát cắt ngang.
+
+   Nén phần khung xuống còn ~146px để danh sách luôn đủ chỗ cho vài hàng. Chỉ
+   áp dụng theo CHIỀU CAO nên máy tính và điện thoại dựng đứng không đổi gì.
+   --------------------------------------------------------------------------- */
+@media (max-height: 500px) {
+  .rank-head {
+    padding: 8px 40px 7px;
+    font-size: .92rem;
+  }
+
+  .rank-close { top: 4px; right: 4px; width: 28px; height: 28px; }
+
+  .rank-tabs { padding: 6px 8px; gap: 5px; }
+
+  .rank-tab { min-height: 28px; font-size: .76rem; }
+
+  .rank-row { padding: 5px 12px; }
+
+  .rank-empty,
+  .rank-mine { padding: 7px 12px; font-size: .75rem; }
+
+  .rank-name { padding: 6px 8px 8px; gap: 6px; }
+
+  #rank-name-input,
+  #rank-name-save { min-height: 32px; font-size: .8rem; }
+
+  #rank-name-save { padding: 0 14px; }
+
+  /* Ở khung rất thấp, để hộp dùng gần hết chiều cao thay vì co theo nội dung. */
+  .rank-modal__inner { height: 100%; }
+
+  /* KHÔNG đặt min-height cho .rank-list ở đây.
+     Bản trước dùng min-height:96px để danh sách luôn hiện được vài hàng, nhưng
+     min-height chặn luôn khả năng CO của flex item: khi panel thấp hơn tổng nội
+     dung, danh sách giữ nguyên 96px và đẩy dòng "của tôi" cùng ô nhập tên ra
+     ngoài, bị overflow:hidden của panel cắt mất.
+
+     Cách đúng cho khung thấp: cho CẢ PANEL cuộn, còn danh sách lấy chiều cao tự
+     nhiên. Không bao giờ cắt mất phần nào, và không lồng hai vùng cuộn vào nhau
+     — vốn rất khó thao tác trên màn hình cảm ứng. */
+  #rank-panel {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rank-list {
+    flex: none;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  /* Hàng tab dính lại trên cùng để đổi kỳ hạn được mà không phải cuộn ngược.
+     Nền phải ĐỤC, nếu không các hàng bên dưới sẽ hiện xuyên qua khi cuộn. */
+  .rank-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #3a2614;
+  }
+}
+
+/* --- Hộp hỏi tên sau khi chơi xong --------------------------------------- */
+
+#name-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 28;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-t) + 14px) calc(var(--safe-r) + 14px)
+           calc(var(--safe-b) + 14px) calc(var(--safe-l) + 14px);
+  background: rgba(10, 6, 3, .5);
+}
+
+#name-modal[hidden] { display: none; }
+
+.name-card {
+  width: min(420px, 100%);
+  padding: 14px 16px 16px;
+  border: 2px solid rgba(255, 176, 46, .55);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(60, 38, 20, .97), rgba(20, 12, 6, .97));
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .6);
+  font-family: var(--ui-font);
+  color: var(--text);
+}
+
+.name-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.name-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--gold-400);
+}
+
+.name-share {
+  flex: none;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 208, 110, .28);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .05);
+  color: var(--text);
+  font: 600 .82rem var(--ui-font);
+  cursor: pointer;
+}
+
+.name-share:hover { background: rgba(255, 176, 46, .16); }
+
+.name-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.name-score {
+  margin: 10px 0 0;
+  font-size: .86rem;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.name-body {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+#name-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 208, 110, .28);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, .32);
+  font: 400 .95rem var(--ui-font);
+  color: #ffffff;
+}
+
+#name-input::placeholder { color: var(--text-dim); }
+
+#name-input:focus { outline: 2px solid var(--gold-500); outline-offset: -1px; }
+
+#name-save {
+  flex: none;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--gold-500), #e08c12);
+  color: #3a1c05;
+  font: 700 .95rem var(--ui-font);
+  cursor: pointer;
+}
+
+#name-save:disabled { opacity: .5; cursor: default; }
+
+/* --- Lớp phủ "tạm dừng" -------------------------------------------------- */
+
+#paused {
+  position: fixed;
+  inset: 0;
+  z-index: 25;                    /* trên game, dưới lớp bắt xoay ngang */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-t) + 16px) calc(var(--safe-r) + 16px)
+           calc(var(--safe-b) + 16px) calc(var(--safe-l) + 16px);
+  background: rgba(10, 6, 3, .62);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+#paused.is-visible { display: flex; }
+
+.paused__card {
+  text-align: center;
+  padding: 26px 34px 22px;
+  border: 2px solid rgba(255, 176, 46, .55);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(60, 38, 20, .96), rgba(20, 12, 6, .96));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .6);
+}
+
+.paused__title {
+  margin: 0 0 16px;
+  font-size: clamp(1.15rem, 4.5vw, 1.5rem);
+  font-weight: 700;
+  color: var(--gold-400);
+}
+
+.paused__resume {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--gold-500), #e08c12);
+  color: #2b1705;
+  font: 700 1rem var(--ui-font);
+  cursor: pointer;
+}
+
+.paused__resume svg { width: 20px; height: 20px; }
+.paused__resume:active { transform: scale(.96); }
+
+.paused__hint {
+  margin: 14px 0 0;
+  font-size: .82rem;
+  color: var(--text-dim);
+}
+
+/* --- Lớp phủ "xoay ngang máy" ------------------------------------------- */
+
+#orientation {
+  z-index: 30;
+  display: none;
+}
+
+#orientation.is-visible { display: flex; }
+
+.orientation__icon {
+  width: 96px;
+  height: 96px;
+  color: var(--gold-400);
+  animation: rotate-hint 2.2s ease-in-out infinite;
+}
+
+.orientation__title {
+  margin: 18px 0 6px;
+  font-size: clamp(1.2rem, 6vw, 1.6rem);
+  font-weight: 700;
+  color: var(--gold-400);
+}
+
+.orientation__hint {
+  margin: 0;
+  font-size: .95rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+/* --- Bộ dò safe-area cho lớp JS ----------------------------------------- */
+
+#safe-area-probe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+  padding-top: var(--safe-t);
+  padding-right: var(--safe-r);
+  padding-bottom: var(--safe-b);
+  padding-left: var(--safe-l);
+}
+
+/* --- Chuyển động ---------------------------------------------------------- */
+
+@keyframes swing {
+  0%, 100% { transform: rotate(-16deg); }
+  50%      { transform: rotate(14deg); }
+}
+
+@keyframes slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+@keyframes rotate-hint {
+  0%, 45%   { transform: rotate(0deg); }
+  70%, 100% { transform: rotate(90deg); }
+}
+
+@keyframes dyn-pulse {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(255, 176, 46, .45); }
+  50%      { transform: scale(1.06); box-shadow: 0 0 0 8px rgba(255, 176, 46, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading__pick,
+  .loading__bar i,
+  .orientation__icon,
+  .hud-btn--action.is-ready {
+    animation: none;
+  }
+}

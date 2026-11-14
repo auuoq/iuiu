@@ -21,6 +21,8 @@ export function createLetter({
   time_lock_at = null,
   status = 'sent',
   milestone_id = null,
+  font_family = null,
+  text_color = null,
   quiz = null
 }) {
   const db = getDb();
@@ -30,8 +32,8 @@ export function createLetter({
       couple_id, sender_id, receiver_id, title, mood_tag, content,
       paper_style, photos, stickers, bgm_track, wax_seal, scent_tag,
       bg_image, envelope_config,
-      open_heart_cost, time_lock_at, status, milestone_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      open_heart_cost, time_lock_at, status, milestone_id, font_family, text_color
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const res = stmt.run(
@@ -52,7 +54,9 @@ export function createLetter({
     open_heart_cost,
     time_lock_at,
     status || 'sent',
-    milestone_id
+    milestone_id,
+    font_family || null,
+    text_color || null
   );
 
   const letterId = Number(res.lastInsertRowid);
@@ -124,13 +128,16 @@ export function updateLetter(letterId, userId, data) {
     ? (typeof data.envelope_config === 'object' ? JSON.stringify(data.envelope_config) : data.envelope_config)
     : letter.envelope_config;
   const milestone_id = data.milestone_id !== undefined ? data.milestone_id : letter.milestone_id;
+  const font_family = data.font_family !== undefined ? data.font_family : letter.font_family;
+  const text_color = data.text_color !== undefined ? data.text_color : letter.text_color;
 
   db.prepare(`
     UPDATE letters
     SET title = ?, mood_tag = ?, content = ?, paper_style = ?,
         photos = ?, stickers = ?, bgm_track = ?, wax_seal = ?, scent_tag = ?,
         bg_image = ?, envelope_config = ?,
-        open_heart_cost = ?, time_lock_at = ?, status = ?, milestone_id = ?
+        open_heart_cost = ?, time_lock_at = ?, status = ?, milestone_id = ?,
+        font_family = ?, text_color = ?
     WHERE id = ?
   `).run(
     title,
@@ -148,6 +155,8 @@ export function updateLetter(letterId, userId, data) {
     time_lock_at,
     status,
     milestone_id,
+    font_family || null,
+    text_color || null,
     letterId
   );
 

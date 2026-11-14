@@ -698,6 +698,16 @@ select {
   border: 1px solid #dfd0b6 !important;
 }
 
+/* Spinning Vinyl Animation for Vintage Music Box */
+@keyframes spinVinyl {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Custom Wax Seal Colors */
 .wax-seal-red {
   background: radial-gradient(circle at 35% 35%, #d64545 0%, #b83232 70%, #801e1e 100%) !important;
@@ -753,3 +763,48 @@ select {
     grid-template-columns: 1fr;
   }
 }
+
+/* Mobile & Touch Optimizations */
+@media (max-width: 640px) {
+  /* Prevent iOS Safari auto-zoom on input focus */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+
+  /* Compact TopBar for Phones */
+  .couple-topbar-header {
+    padding: 8px 12px !important;
+  }
+
+  .couple-topbar-wrapper {
+    gap: 8px !important;
+  }
+
+  .couple-topbar-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .couple-topbar-actions {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    gap: 6px !important;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .couple-topbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .miner-hot-badge {
+    display: none !important;
+  }
+
+  .app-main-content {
+    padding: 12px 10px !important;
+  }
+}
+

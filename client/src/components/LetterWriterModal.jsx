@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client.js';
 import {
   X, Image, Sparkles, HelpCircle, Calendar, Heart, Upload, Archive, Send,
@@ -6,7 +6,8 @@ import {
   ZoomIn, ZoomOut, RotateCw, Trash2, Plus, Sliders, Mail
 } from 'lucide-react';
 import { DEFAULT_STICKERS } from './StickerDrawer.jsx';
-import { ROMANTIC_PLAYLIST } from './AudioPlayer.jsx';
+import { ROMANTIC_PLAYLIST, getSavedPlaylist, saveSongToPlaylist, extractYouTubeId } from './VintageMusicBox.jsx';
+import { LetterBgmEngine } from './LetterBgmEngine.jsx';
 import { PostageStamp, STAMP_DESIGNS, ENVELOPE_THEMES } from './PostageStamp.jsx';
 
 export const PAPER_THEMES = [
@@ -95,9 +96,22 @@ export const ANIMATED_STICKERS = [
   }
 ];
 
+export const DEFAULT_PRESET_CATEGORIES = [
+  'Mở khi nhớ nhau',
+  'Mở khi thấy mệt mỏi',
+  'Mở khi cần động viên',
+  'Mở khi giận dỗi',
+  'Mở vào ngày kỷ niệm',
+  'Mở khi không ngủ được'
+];
+
 export function LetterWriterModal({ partner, letterToEdit = null, initialMilestone = null, existingCategories = [], onClose, onLetterSaved }) {
   const isEditing = Boolean(letterToEdit);
   const [activeTab, setActiveTab] = useState('edit'); // 'edit' | 'decor' | 'envelope'
+
+  const allAvailableCategories = Array.from(
+    new Set([...(existingCategories || []), ...DEFAULT_PRESET_CATEGORIES].filter(Boolean))
+  );
 
   const [milestoneId, setMilestoneId] = useState(letterToEdit?.milestone_id || initialMilestone?.id || null);
 
@@ -123,9 +137,28 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
   const [scentTag, setScentTag] = useState(letterToEdit?.scent_tag || 'rose');
 
   // Background Music for Letter
-  const [bgmTrack, setBgmTrack] = useState(letterToEdit?.bgm_track || ROMANTIC_PLAYLIST[0].url);
+  const [playlist, setPlaylist] = useState(() => getSavedPlaylist());
+  const [bgmTrack, setBgmTrack] = useState(() => {
+    if (letterToEdit) return letterToEdit.bgm_track || '';
+    const initialList = getSavedPlaylist();
+    return initialList[0]?.url || '';
+  });
   const [isPreviewAudioPlaying, setIsPreviewAudioPlaying] = useState(false);
-  const previewAudioRef = useRef(null);
+  const [showAddBgmModal, setShowAddBgmModal] = useState(false);
+  const [newBgmTitle, setNewBgmTitle] = useState('');
+  const [newBgmUrl, setNewBgmUrl] = useState('');
+  const [bgmAddError, setBgmAddError] = useState('');
+
+  // Sync with shared playlist
+  useEffect(() => {
+    const handlePlaylistUpdated = (e) => {
+      if (Array.isArray(e.detail)) {
+        setPlaylist(e.detail);
+      }
+    };
+    window.addEventListener('lovecapsule:playlist-updated', handlePlaylistUpdated);
+    return () => window.removeEventListener('lovecapsule:playlist-updated', handlePlaylistUpdated);
+  }, []);
 
   // Outer Envelope & Postage Stamp
   const [envelopeColor, setEnvelopeColor] = useState(letterToEdit?.envelope_config?.color || 'dusty_rose');
@@ -188,21 +221,38 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
 
   // Audio Preview toggle
   const togglePreviewBgm = () => {
-    if (!previewAudioRef.current) {
-      previewAudioRef.current = new Audio(bgmTrack);
-      previewAudioRef.current.loop = true;
-      previewAudioRef.current.volume = 0.45;
-    }
+    if (!bgmTrack) return;
+    setIsPreviewAudioPlaying(prev => !prev);
+  };
 
-    if (isPreviewAudioPlaying) {
-      previewAudioRef.current.pause();
-      setIsPreviewAudioPlaying(false);
-    } else {
-      previewAudioRef.current.src = bgmTrack;
-      previewAudioRef.current.play().then(() => {
-        setIsPreviewAudioPlaying(true);
-      }).catch(e => console.warn(e));
+  const handleAddNewBgmSong = (e) => {
+    e.preventDefault();
+    setBgmAddError('');
+    const trimmedTitle = newBgmTitle.trim();
+    const trimmedUrl = newBgmUrl.trim();
+    if (!trimmedUrl) {
+      setBgmAddError('Vui lòng nhập link bài hát');
+      return;
     }
+    const ytId = extractYouTubeId(trimmedUrl);
+    const isAudioExt = trimmedUrl.match(/\.(mp3|wav|ogg|m4a|aac)(\?.*)?$/i);
+    if (!ytId && !isAudioExt && !trimmedUrl.startsWith('http')) {
+      setBgmAddError('Link không hợp lệ! Vui lòng nhập link YouTube hoặc MP3');
+      return;
+    }
+    const newSong = {
+      id: `bgm-${Date.now()}`,
+      name: trimmedTitle || (ytId ? 'Bài hát YouTube' : 'Bài hát MP3'),
+      artist: ytId ? 'YouTube' : 'Audio Tải Lên',
+      url: trimmedUrl
+    };
+    const updated = saveSongToPlaylist(newSong);
+    setPlaylist(updated);
+    setBgmTrack(trimmedUrl);
+    setIsPreviewAudioPlaying(true);
+    setNewBgmTitle('');
+    setNewBgmUrl('');
+    setShowAddBgmModal(false);
   };
 
   // Sticker & Canvas Drag-and-Drop Handlers
@@ -441,6 +491,141 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
       padding: '20px',
       overflowY: 'auto'
     }}>
+      {/* Background Music Engine for Preview */}
+      <LetterBgmEngine url={bgmTrack} isPlaying={isPreviewAudioPlaying} />
+
+      {/* Modal Thêm Bài Hát Mới Vào Thư & Hộp Nhạc */}
+      {showAddBgmModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1200,
+            padding: '20px'
+          }}
+          onClick={() => setShowAddBgmModal(false)}
+        >
+          <div
+            style={{
+              background: '#fffdf9',
+              border: '2px solid var(--rose-primary)',
+              borderRadius: '20px',
+              padding: '22px 24px',
+              maxWidth: '450px',
+              width: '100%',
+              boxShadow: '0 16px 40px rgba(0,0,0,0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Music size={17} color="var(--rose-primary)" />
+                <span>Thêm bài hát YouTube / MP3</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddBgmModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-ink)', display: 'block', marginBottom: '5px' }}>
+                Tên bài hát:
+              </label>
+              <input
+                type="text"
+                placeholder="Ví dụ: Cơn Mưa Cuối, Until I Found You..."
+                value={newBgmTitle}
+                onChange={(e) => setNewBgmTitle(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-subtle)',
+                  fontSize: '13px'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-ink)', display: 'block', marginBottom: '5px' }}>
+                Link YouTube hoặc file MP3:
+              </label>
+              <input
+                type="text"
+                placeholder="Dán link YouTube (youtube.com, youtu.be) hoặc link file MP3..."
+                value={newBgmUrl}
+                onChange={(e) => setNewBgmUrl(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-subtle)',
+                  fontSize: '13px'
+                }}
+              />
+            </div>
+
+            {bgmAddError && (
+              <div style={{ fontSize: '12px', color: '#dc2626', background: '#fee2e2', padding: '6px 10px', borderRadius: '8px' }}>
+                {bgmAddError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+              <button
+                type="button"
+                onClick={handleAddNewBgmSong}
+                style={{
+                  flex: 1,
+                  background: 'var(--rose-primary)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 10px rgba(224, 109, 126, 0.3)'
+                }}
+              >
+                + Thêm &amp; Chọn bài này ngay
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAddBgmModal(false)}
+                style={{
+                  background: '#f0ece4',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '10px 16px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: 'var(--text-ink)',
+                  cursor: 'pointer'
+                }}
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{
         background: 'var(--paper-cream)',
         border: '1px solid var(--border-subtle)',
@@ -448,187 +633,203 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
         maxWidth: '820px',
         width: '100%',
         maxHeight: '92vh',
-        overflowY: 'auto',
-        padding: '30px',
         boxShadow: 'var(--shadow-warm)',
-        position: 'relative'
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
       }}>
-        {/* Close Button */}
-        <button
-          onClick={() => {
-            if (previewAudioRef.current) previewAudioRef.current.pause();
-            onClose();
-          }}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-light)',
-            cursor: 'pointer',
-            zIndex: 20
-          }}
-        >
-          <X size={22} />
-        </button>
-
-        {/* Modal Header & 3 Navigation Tabs */}
+        {/* Sticky Fixed Modal Header */}
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-          marginBottom: '20px',
+          padding: '22px 28px 16px 28px',
+          background: 'var(--paper-cream)',
           borderBottom: '1px solid var(--border-subtle)',
-          paddingBottom: '14px'
+          position: 'relative',
+          flexShrink: 0,
+          zIndex: 30
         }}>
-          <div>
-            <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-ink)' }}>
-              {isEditing ? 'Chỉnh Sửa Lá Thư Yêu Thương' : 'Gửi Gắm Lá Thư Yêu Thương'}
-            </h2>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Người nhận: <strong style={{ color: 'var(--rose-primary)' }}>{partner.display_name}</strong>
-            </div>
-          </div>
+          {/* Close Button */}
+          <button
+            onClick={() => {
+              setIsPreviewAudioPlaying(false);
+              onClose();
+            }}
+            style={{
+              position: 'absolute',
+              top: '18px',
+              right: '22px',
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-light)',
+              cursor: 'pointer',
+              zIndex: 35
+            }}
+          >
+            <X size={22} />
+          </button>
 
-          {/* 3 Interactive Mode Tabs */}
           <div style={{
             display: 'flex',
-            background: '#eee8de',
-            padding: '3px',
-            borderRadius: '14px',
-            border: '1px solid var(--border-subtle)',
-            gap: '2px'
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px',
+            paddingRight: '36px'
           }}>
-            <button
-              type="button"
-              onClick={() => setActiveTab('edit')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 12px',
-                borderRadius: '11px',
-                border: 'none',
-                background: activeTab === 'edit' ? '#fff' : 'transparent',
-                color: activeTab === 'edit' ? 'var(--rose-primary)' : 'var(--text-muted)',
-                fontWeight: '700',
-                fontSize: '12.5px',
-                cursor: 'pointer',
-                boxShadow: activeTab === 'edit' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
-              }}
-            >
-              <Edit3 size={13} /> 1. Soạn Thảo
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('decor')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 12px',
-                borderRadius: '11px',
-                border: 'none',
-                background: activeTab === 'decor' ? '#fff' : 'transparent',
-                color: activeTab === 'decor' ? 'var(--rose-primary)' : 'var(--text-muted)',
-                fontWeight: '700',
-                fontSize: '12.5px',
-                cursor: 'pointer',
-                boxShadow: activeTab === 'decor' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
-              }}
-            >
-              <Sparkles size={13} /> 2. Trang Trí Canvas
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('envelope')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 12px',
-                borderRadius: '11px',
-                border: 'none',
-                background: activeTab === 'envelope' ? '#fff' : 'transparent',
-                color: activeTab === 'envelope' ? 'var(--rose-primary)' : 'var(--text-muted)',
-                fontWeight: '700',
-                fontSize: '12.5px',
-                cursor: 'pointer',
-                boxShadow: activeTab === 'envelope' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
-              }}
-            >
-              <Mail size={13} /> 3. Phong Bì & Tem
-            </button>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-ink)' }}>
+                {isEditing ? 'Chỉnh sửa thư' : 'Viết thư'}
+              </h2>
+              <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                Đến: <strong style={{ color: 'var(--rose-primary)' }}>{partner.display_name}</strong>
+              </div>
+            </div>
+
+            {/* 3 Interactive Mode Tabs */}
+            <div style={{
+              display: 'flex',
+              background: '#eee8de',
+              padding: '3px',
+              borderRadius: '14px',
+              border: '1px solid var(--border-subtle)',
+              gap: '2px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab('edit')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '6px 12px',
+                  borderRadius: '11px',
+                  border: 'none',
+                  background: activeTab === 'edit' ? '#fff' : 'transparent',
+                  color: activeTab === 'edit' ? 'var(--rose-primary)' : 'var(--text-muted)',
+                  fontWeight: '700',
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  boxShadow: activeTab === 'edit' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+                }}
+              >
+                <Edit3 size={13} /> Soạn thảo
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('decor')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '6px 12px',
+                  borderRadius: '11px',
+                  border: 'none',
+                  background: activeTab === 'decor' ? '#fff' : 'transparent',
+                  color: activeTab === 'decor' ? 'var(--rose-primary)' : 'var(--text-muted)',
+                  fontWeight: '700',
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  boxShadow: activeTab === 'decor' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+                }}
+              >
+                <Sparkles size={13} /> Trang trí
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('envelope')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '6px 12px',
+                  borderRadius: '11px',
+                  border: 'none',
+                  background: activeTab === 'envelope' ? '#fff' : 'transparent',
+                  color: activeTab === 'envelope' ? 'var(--rose-primary)' : 'var(--text-muted)',
+                  fontWeight: '700',
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  boxShadow: activeTab === 'envelope' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+                }}
+              >
+                <Mail size={13} /> Phong bì
+              </button>
+            </div>
           </div>
         </div>
 
-        {error && (
-          <div style={{ background: '#ffebee', color: '#c62828', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', marginBottom: '16px' }}>
-            {error}
-          </div>
-        )}
-
-        {/* ================= TAB 1: SOẠN THẢO (EDIT MODE) ================= */}
-        {activeTab === 'edit' && (
-          <form onSubmit={(e) => { e.preventDefault(); handleSave('sent'); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Category / Mood Tag */}
-            <div>
-              <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Loại thư / Chủ đề ("Mở khi..."):
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="Nhập loại thư (Ví dụ: Mở khi đi xa, Mở khi thấy mệt...)"
-                value={moodTag}
-                onChange={(e) => setMoodTag(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-subtle)',
-                  background: '#fff',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px'
-                }}
-              />
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Gợi ý:</span>
-                {allSuggestions.slice(0, 6).map((tag, idx) => (
-                  <button
-                    type="button"
-                    key={idx}
-                    onClick={() => setMoodTag(tag)}
-                    style={{
-                      padding: '3px 10px',
-                      borderRadius: '14px',
-                      border: moodTag === tag ? '1px solid var(--rose-primary)' : '1px solid var(--border-subtle)',
-                      background: moodTag === tag ? 'var(--rose-light)' : '#fff',
-                      color: moodTag === tag ? 'var(--rose-primary)' : 'var(--text-muted)',
-                      fontSize: '11.5px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
+        {/* Scrollable Modal Content */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '24px 28px 28px 28px'
+        }}>
+          {error && (
+            <div style={{ background: '#ffebee', color: '#c62828', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', marginBottom: '16px' }}>
+              {error}
             </div>
+          )}
+
+          {/* ================= TAB 1: SOẠN THẢO (EDIT MODE) ================= */}
+          {activeTab === 'edit' && (
+            <form onSubmit={(e) => { e.preventDefault(); handleSave('sent'); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Category / Mood Tag Combobox */}
+              <div>
+                <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Chủ đề:
+                </label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Gõ chủ đề mới hoặc chọn từ danh sách bên cạnh..."
+                    value={moodTag}
+                    onChange={(e) => setMoodTag(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border-subtle)',
+                      background: '#fff',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}
+                  />
+                  <select
+                    value={allAvailableCategories.includes(moodTag) ? moodTag : ''}
+                    onChange={(e) => {
+                      if (e.target.value) setMoodTag(e.target.value);
+                    }}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border-subtle)',
+                      background: '#fff',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: 'var(--text-ink)',
+                      cursor: 'pointer',
+                      maxWidth: '190px'
+                    }}
+                    title="Chọn chủ đề có sẵn"
+                  >
+                    <option value="">-- Chủ đề có sẵn ({allAvailableCategories.length}) --</option>
+                    {allAvailableCategories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
             {/* Letter Title */}
             <div>
               <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Tiêu đề lá thư:
+                Tiêu đề:
               </label>
               <input
                 type="text"
                 required
-                placeholder="Mở khi cần động viên hoặc nhớ nhau..."
+                placeholder="Tiêu đề lá thư..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 style={{
@@ -657,7 +858,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
                   <Type size={14} color="var(--rose-primary)" />
-                  <span>Phông chữ tiếng Việt (8 kiểu):</span>
+                  <span>Phông chữ:</span>
                 </label>
                 <select
                   value={fontFamily}
@@ -675,7 +876,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                 <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Palette size={14} color="var(--rose-primary)" />
-                    <span>Màu mực viết thư:</span>
+                    <span>Màu mực:</span>
                   </span>
                   <input
                     type="color"
@@ -709,18 +910,15 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
 
             {/* Content Textarea with live font and color */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div style={{ marginBottom: '6px' }}>
                 <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-muted)' }}>
-                  Lời tâm tình của bạn:
+                  Nội dung thư:
                 </label>
-                <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>
-                  Có thể chèn emoji hoặc trang trí thêm ảnh ở tab 2
-                </span>
               </div>
               <textarea
                 required
                 rows={7}
-                placeholder="Gửi em, lá thư này anh viết vào một buổi chiều nhớ em thật nhiều..."
+                placeholder="Nhập nội dung thư..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 style={{
@@ -751,7 +949,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
               {/* Wax Seal */}
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--rose-primary)', display: 'block', marginBottom: '4px' }}>
-                  Con Dấu Sáp Niêm Phong:
+                  Dấu sáp:
                 </label>
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   {WAX_SEAL_COLORS.map(c => (
@@ -785,7 +983,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
               {/* Scent Tag */}
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-ink)', display: 'block', marginBottom: '4px' }}>
-                  Mùi hương gửi kèm thư:
+                  Mùi hương:
                 </label>
                 <select
                   value={scentTag}
@@ -800,31 +998,69 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
 
               {/* Letter BGM */}
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span>Nhạc nền khi mở thư 🎵:</span>
-                  <button
-                    type="button"
-                    onClick={togglePreviewBgm}
-                    style={{ background: 'none', border: 'none', color: 'var(--rose-primary)', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px', fontWeight: '700' }}
-                  >
-                    {isPreviewAudioPlaying ? <Pause size={12} /> : <Play size={12} />}
-                    <span>{isPreviewAudioPlaying ? 'Dừng' : 'Nghe thử'}</span>
-                  </button>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-ink)' }}>
+                    Nhạc nền:
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddBgmModal(!showAddBgmModal)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--rose-primary)',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}
+                      title="Thêm bài hát YouTube hoặc MP3"
+                    >
+                      <Plus size={11} />
+                      <span>{showAddBgmModal ? 'Đóng' : '+ Thêm bài'}</span>
+                    </button>
+                    {bgmTrack && (
+                      <button
+                        type="button"
+                        onClick={togglePreviewBgm}
+                        style={{
+                          background: isPreviewAudioPlaying ? 'var(--rose-light)' : '#f5efe6',
+                          border: isPreviewAudioPlaying ? '1px solid var(--rose-primary)' : '1px solid var(--border-subtle)',
+                          borderRadius: '6px',
+                          color: isPreviewAudioPlaying ? 'var(--rose-primary)' : 'var(--text-ink)',
+                          cursor: 'pointer',
+                          padding: '1px 6px',
+                          fontSize: '11px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          fontWeight: '700'
+                        }}
+                      >
+                        {isPreviewAudioPlaying ? <Pause size={11} /> : <Play size={11} />}
+                        <span>{isPreviewAudioPlaying ? 'Dừng' : 'Thử'}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <select
                   value={bgmTrack}
                   onChange={(e) => {
                     setBgmTrack(e.target.value);
-                    if (previewAudioRef.current) {
-                      previewAudioRef.current.pause();
-                      setIsPreviewAudioPlaying(false);
-                    }
                   }}
                   style={{ width: '100%', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: '#fff', fontSize: '12px', fontWeight: '600' }}
                 >
-                  {ROMANTIC_PLAYLIST.map(track => (
-                    <option key={track.id} value={track.url}>{track.name}</option>
+                  <option value="">🚫 Không dùng nhạc nền</option>
+                  {playlist.map(track => (
+                    <option key={track.id || track.url} value={track.url}>{track.name}</option>
                   ))}
+                  {bgmTrack && !playlist.some(t => t.url === bgmTrack) && (
+                    <option value={bgmTrack}>🎵 Bài tùy chỉnh: {bgmTrack}</option>
+                  )}
                 </select>
               </div>
             </div>
@@ -834,7 +1070,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <span style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Image size={15} color="var(--rose-primary)" />
-                  <span>Ảnh Polaroid Kỷ Niệm ({photos.length}/4)</span>
+                  <span>Ảnh đính kèm ({photos.length}/4)</span>
                 </span>
                 <label style={{
                   display: 'flex',
@@ -849,7 +1085,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                   cursor: 'pointer'
                 }}>
                   <Upload size={13} />
-                  <span>Thêm ảnh kỷ niệm</span>
+                  <span>Thêm ảnh</span>
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
                 </label>
               </div>
@@ -885,7 +1121,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                    Phí mở thư (Trái tim ❤️):
+                    Phí mở (❤️):
                   </label>
                   <input
                     type="number"
@@ -899,7 +1135,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
 
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                    Hẹn giờ mở thư (Tùy chọn):
+                    Hẹn giờ mở:
                   </label>
                   <input
                     type="datetime-local"
@@ -918,7 +1154,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                     checked={hasQuiz}
                     onChange={(e) => setHasQuiz(e.target.checked)}
                   />
-                  <span>🔒 Cài đặt câu đố tình yêu để mở khóa thư</span>
+                  <span>🔒 Đặt câu đố để mở thư</span>
                 </label>
 
                 {hasQuiz && (
@@ -932,7 +1168,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                           checked={quizType === 'choice'}
                           onChange={() => setQuizType('choice')}
                         />
-                        Trắc nghiệm (Chọn 1 trong các đáp án)
+                        Trắc nghiệm
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
                         <input
@@ -942,13 +1178,13 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                           checked={quizType === 'text'}
                           onChange={() => setQuizType('text')}
                         />
-                        Tự luận (Nhập chữ)
+                        Tự luận
                       </label>
                     </div>
 
                     <input
                       type="text"
-                      placeholder="Câu hỏi đố (Ví dụ: Ngày đầu tiên hai đứa gặp nhau ở đâu?)"
+                      placeholder="Câu hỏi đố..."
                       value={quizQuestion}
                       onChange={(e) => setQuizQuestion(e.target.value)}
                       style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
@@ -994,7 +1230,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                     {quizType === 'text' && (
                       <input
                         type="text"
-                        placeholder="Nhập đáp án chuẩn xác..."
+                        placeholder="Đáp án đúng..."
                         value={correctAnswer}
                         onChange={(e) => setCorrectAnswer(e.target.value)}
                         style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
@@ -1003,7 +1239,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
 
                     <input
                       type="text"
-                      placeholder="Gợi ý ngọt ngào khi đối phương bị bí..."
+                      placeholder="Gợi ý (tùy chọn)..."
                       value={quizHint}
                       onChange={(e) => setQuizHint(e.target.value)}
                       style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
@@ -1059,7 +1295,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                 }}
               >
                 <Sparkles size={16} />
-                <span>Sang Bước 2: Trang Trí ✨</span>
+                <span>Trang trí</span>
               </button>
 
               <button
@@ -1083,7 +1319,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                 }}
               >
                 <Send size={16} />
-                <span>{loading ? 'Đang gửi...' : 'Gửi Thư Ngay 💌'}</span>
+                <span>{loading ? 'Đang gửi...' : 'Gửi thư'}</span>
               </button>
             </div>
           </form>
@@ -1131,7 +1367,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                   cursor: 'pointer'
                 }}>
                   <Upload size={12} />
-                  <span>{bgImage ? 'Đổi ảnh nền riêng' : 'Tải ảnh nền thư'}</span>
+                  <span>{bgImage ? 'Đổi ảnh nền' : 'Tải ảnh nền'}</span>
                   <input type="file" accept="image/*" onChange={handleBgImageUpload} style={{ display: 'none' }} />
                 </label>
 
@@ -1141,7 +1377,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                     onClick={() => setBgImage(null)}
                     style={{ background: 'none', border: 'none', color: '#c62828', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}
                   >
-                    Xóa ảnh nền
+                    Xóa ảnh
                   </button>
                 )}
               </div>
@@ -1149,7 +1385,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
               {/* Background Opacity slider if custom bg uploaded */}
               {bgImage && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Độ mờ nền:</span>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Độ mờ:</span>
                   <input
                     type="range"
                     min="0.08"
@@ -1246,14 +1482,14 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                 zIndex: 2,
                 pointerEvents: 'none'
               }}>
-                {content || '(Hãy viết vài dòng tâm tình vào nội dung lá thư...)'}
+                {content || '(Chưa có nội dung)'}
               </div>
 
               {/* Polaroid Attachments Preview on Canvas */}
               {photos.length > 0 && (
                 <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px dashed rgba(0,0,0,0.1)', position: 'relative', zIndex: 2 }}>
                   <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                    Ảnh kỷ niệm kèm theo:
+                    Ảnh đính kèm:
                   </div>
                   <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
                     {photos.map((p, idx) => (
@@ -1261,7 +1497,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                         <div className="washi-tape" style={{ width: '40px', height: '12px' }} />
                         <img src={typeof p === 'string' ? p : p.url} alt="Polaroid" className="polaroid-img" style={{ height: '95px' }} />
                         <div className="polaroid-caption" style={{ fontSize: '12px' }}>
-                          {(typeof p === 'object' && p.caption) || 'Kỷ niệm ✨'}
+                          {(typeof p === 'object' && p.caption) || 'Ảnh'}
                         </div>
                       </div>
                     ))}
@@ -1356,7 +1592,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-ink)' }}>
-                    Thư Viện Sticker & GIF Động:
+                    Sticker &amp; GIF:
                   </span>
                   <div style={{ display: 'flex', gap: '4px', background: '#f0ece4', padding: '2px', borderRadius: '8px' }}>
                     <button
@@ -1373,7 +1609,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                         cursor: 'pointer'
                       }}
                     >
-                      Sticker Đẹp
+                      Sticker
                     </button>
                     <button
                       type="button"
@@ -1389,7 +1625,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                         cursor: 'pointer'
                       }}
                     >
-                      GIF Động ✨
+                      GIF
                     </button>
                   </div>
                 </div>
@@ -1408,7 +1644,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                   cursor: 'pointer'
                 }}>
                   <Upload size={13} />
-                  <span>Tải GIF / Ảnh từ máy</span>
+                  <span>Tải lên</span>
                   <input type="file" accept="image/*,.gif" onChange={handleCustomStickerUpload} style={{ display: 'none' }} />
                 </label>
               </div>
@@ -1420,7 +1656,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                     key={stk.id}
                     type="button"
                     onClick={() => handleAddSticker(stk.url)}
-                    title={`Thêm ${stk.name} vào canvas`}
+                    title={`Thêm ${stk.name}`}
                     style={{
                       background: '#faf6ee',
                       border: '1px solid #ebd9c8',
@@ -1467,7 +1703,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                   gap: '6px'
                 }}
               >
-                <Edit3 size={15} /> 1. Quay Lại Soạn Lời
+                <Edit3 size={15} /> Quay lại
               </button>
 
               <button
@@ -1489,7 +1725,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                   gap: '6px'
                 }}
               >
-                <Mail size={16} /> 3. Sang Tùy Chỉnh Phong Bì & Tem 💌
+                <Mail size={16} /> Phong bì
               </button>
 
               <button
@@ -1514,7 +1750,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                 }}
               >
                 <Send size={16} />
-                <span>{loading ? 'Đang gửi...' : 'Gửi Thư Ngay 💌'}</span>
+                <span>{loading ? 'Đang gửi...' : 'Gửi thư'}</span>
               </button>
             </div>
           </div>
@@ -1552,7 +1788,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  <span>🏷️ Mặt Trước (Dán Tem & Tên Nhận)</span>
+                  <span>Mặt trước</span>
                 </button>
                 <button
                   type="button"
@@ -1573,7 +1809,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  <span>💌 Mặt Sau (Nắp Gập & Dấu Sáp)</span>
+                  <span>Mặt sau</span>
                 </button>
               </div>
             </div>
@@ -1648,7 +1884,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                       />
                     </div>
 
-                    {/* Vintage Postal Address Card (Nhãn Bưu Thiếp Tình Yêu) in the center */}
+                    {/* Vintage Postal Address Card in the center */}
                     <div style={{
                       margin: '82px 20px 18px 20px',
                       background: 'rgba(255, 253, 249, 0.96)',
@@ -1660,47 +1896,29 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                       position: 'relative',
                       zIndex: 10
                     }}>
-                      <div style={{
-                        fontSize: '11px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1.5px',
-                        color: '#9e6d42',
-                        fontWeight: '800',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}>
-                        <span>💌 THƯ TÌNH GỬI ĐẾN</span>
-                      </div>
+                      {/* Title on Address Card */}
                       <div style={{
                         fontFamily: 'var(--font-handwriting)',
                         fontSize: '26px',
                         color: '#2b2621',
-                        marginTop: '6px',
                         lineHeight: 1.25,
                         fontWeight: '700',
                         wordBreak: 'break-word'
                       }}>
-                        {title || 'Lá Thư Chưa Đặt Tên'}
+                        {title || 'Chưa có tiêu đề'}
                       </div>
                       <div style={{
                         display: 'flex',
-                        justifyContent: 'space-between',
+                        justifyContent: 'center',
                         alignItems: 'center',
-                        fontSize: '12px',
+                        fontSize: '13px',
                         color: '#665c54',
                         marginTop: '10px',
                         borderTop: '1px dashed rgba(196,164,130,0.45)',
-                        paddingTop: '8px',
-                        flexWrap: 'wrap',
-                        gap: '6px'
+                        paddingTop: '8px'
                       }}>
                         <div>
-                          Kính gửi: <strong style={{ color: 'var(--rose-primary)' }}>{partner.display_name}</strong>
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#9e6d42' }}>
-                          Bưu Chính Tình Yêu 💕
+                          Gửi đến: <strong style={{ color: 'var(--rose-primary)' }}>{partner.display_name}</strong>
                         </div>
                       </div>
                     </div>
@@ -1723,12 +1941,12 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                     <div className="craft-envelope-bottom-fold" />
 
                     {/* Back Information when Sealed */}
-                    <div style={{ padding: '165px 24px 24px 24px', textAlign: 'center', position: 'relative', zIndex: 10 }}>
+                    <div style={{ padding: '175px 24px 24px 24px', textAlign: 'center', position: 'relative', zIndex: 10 }}>
                       <div style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '6px',
-                        background: 'rgba(255,255,255,0.25)',
+                        background: 'rgba(255,255,255,0.3)',
                         backdropFilter: 'blur(4px)',
                         padding: '6px 14px',
                         borderRadius: '20px',
@@ -1738,10 +1956,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                         textShadow: '0 1px 3px rgba(0,0,0,0.2)'
                       }}>
                         <Sparkles size={14} />
-                        <span>Niêm phong bởi LoveCapsule</span>
-                      </div>
-                      <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', marginTop: '6px', fontWeight: '500' }}>
-                        Đối phương sẽ chạm vào khóa trái tim để mở lá thư này ✨
+                        <span>LoveCapsule</span>
                       </div>
                     </div>
                   </div>
@@ -1760,7 +1975,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
               }}>
                 <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-ink)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Mail size={15} color="var(--rose-primary)" />
-                  <span>Màu sắc & Chất liệu phong bì ngoài:</span>
+                  <span>Màu phong bì:</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
                   {ENVELOPE_THEMES.map(theme => (
@@ -1798,7 +2013,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>Bộ Sưu Tập Tem Thư Cổ Điển:</span>
+                    <span>Tem thư:</span>
                   </span>
                   {/* Photo Stamp Upload Button */}
                   <label style={{
@@ -1814,7 +2029,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                     cursor: 'pointer'
                   }}>
                     <Upload size={12} />
-                    <span>{stampImage ? 'Đổi ảnh tem đôi' : 'Tạo tem từ ảnh đôi 📸'}</span>
+                    <span>{stampImage ? 'Đổi ảnh' : 'Tải ảnh tem'}</span>
                     <input type="file" accept="image/*" onChange={handleStampPhotoUpload} style={{ display: 'none' }} />
                   </label>
                 </div>
@@ -1871,7 +2086,7 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                   gap: '6px'
                 }}
               >
-                <Sparkles size={15} /> 2. Quay Lại Trang Trí Canvas
+                <Sparkles size={15} /> Quay lại
               </button>
 
               <button
@@ -1896,11 +2111,12 @@ export function LetterWriterModal({ partner, letterToEdit = null, initialMilesto
                 }}
               >
                 <Send size={16} />
-                <span>{loading ? 'Đang gửi...' : 'Niêm Phong & Gửi Thư Ngay 💌'}</span>
+                <span>{loading ? 'Đang gửi...' : 'Gửi thư'}</span>
               </button>
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

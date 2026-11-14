@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Calendar, Heart, BookmarkCheck, Music, Pause, Play, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { WAX_EMBLEMS, SCENT_TAGS } from './LetterWriterModal.jsx';
-import { PostageStamp } from './PostageStamp.jsx';
+import { LetterBgmEngine } from './LetterBgmEngine.jsx';
 
 export function LetterReaderModal({ letter, onClose }) {
-  const [isPlayingMusic, setIsPlayingMusic] = useState(false);
-  const audioRef = useRef(null);
-
-  const envCfg = letter.envelope_config || { color: 'dusty_rose', stamp_design: 'rose', stamp_image: null };
+  const [isPlayingMusic, setIsPlayingMusic] = useState(Boolean(letter.bgm_track));
 
   // Theme paper classes
   const getPaperClass = () => {
@@ -21,34 +18,8 @@ export function LetterReaderModal({ letter, onClose }) {
     }
   };
 
-  // Play BGM if available
-  useEffect(() => {
-    if (letter.bgm_track) {
-      const audio = new Audio(letter.bgm_track);
-      audio.loop = true;
-      audio.volume = 0.45;
-      audioRef.current = audio;
-
-      audio.play().then(() => {
-        setIsPlayingMusic(true);
-      }).catch(err => {
-        console.warn('Letter BGM autoplay blocked:', err.message);
-      });
-
-      return () => {
-        audio.pause();
-      };
-    }
-  }, [letter.bgm_track]);
-
   const toggleMusic = () => {
-    if (!audioRef.current) return;
-    if (isPlayingMusic) {
-      audioRef.current.pause();
-      setIsPlayingMusic(false);
-    } else {
-      audioRef.current.play().then(() => setIsPlayingMusic(true)).catch(e => console.warn(e));
-    }
+    setIsPlayingMusic(prev => !prev);
   };
 
   const waxColor = letter.wax_seal?.color || 'red';
@@ -94,15 +65,20 @@ export function LetterReaderModal({ letter, onClose }) {
         </div>
       ))}
 
+      {/* Background Music Engine */}
+      <LetterBgmEngine url={letter.bgm_track} isPlaying={isPlayingMusic} />
+
+      {/* Main Letter Paper Canvas (Identical sizing, padding, and layout to editor canvas preview!) */}
       <div
-        className={getPaperClass()}
+        className={`letter-canvas-surface ${getPaperClass()}`}
         style={{
           borderRadius: '24px',
-          maxWidth: '700px',
+          maxWidth: '740px',
           width: '100%',
+          minHeight: '480px',
           maxHeight: '90vh',
           overflowY: 'auto',
-          padding: '38px',
+          padding: '36px',
           boxShadow: '0 25px 50px rgba(0,0,0,0.22)',
           position: 'relative',
           zIndex: 10
@@ -117,7 +93,7 @@ export function LetterReaderModal({ letter, onClose }) {
               backgroundImage: `url(${letter.bg_image})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              opacity: 0.16,
+              opacity: 0.18,
               pointerEvents: 'none',
               borderRadius: '24px',
               zIndex: 0
@@ -125,75 +101,36 @@ export function LetterReaderModal({ letter, onClose }) {
           />
         )}
 
-        {/* Close Button */}
-        <button
-          onClick={() => {
-            if (audioRef.current) audioRef.current.pause();
-            onClose();
-          }}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-light)',
-            cursor: 'pointer',
-            zIndex: 10
-          }}
-        >
-          <X size={22} />
-        </button>
-
-        {/* Top Floating Badges: Scent Tag & Mini Vinyl Player */}
+        {/* Top-Right Badges: BGM Player + Scent Tag + Close Button */}
         <div style={{
+          position: 'absolute',
+          top: '16px',
+          right: '18px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '20px',
-          flexWrap: 'wrap',
           gap: '8px',
-          position: 'relative',
-          zIndex: 2
+          zIndex: 30
         }}>
-          {/* Scent Tag */}
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.85)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '16px',
-            padding: '4px 12px',
-            fontSize: '11.5px',
-            fontWeight: '700',
-            color: 'var(--rose-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
-          }}>
-            <span>🌸</span>
-            <span>{scent}</span>
-          </div>
-
           {/* Letter BGM Mini Player */}
           {letter.bgm_track && (
             <div
               onClick={toggleMusic}
               title={isPlayingMusic ? 'Bấm để tạm dừng nhạc' : 'Bấm để phát nhạc'}
               style={{
-                background: '#fff',
+                background: 'rgba(255, 255, 255, 0.92)',
                 border: '1px solid var(--rose-border)',
-                borderRadius: '20px',
-                padding: '4px 12px',
+                borderRadius: '16px',
+                padding: '4px 10px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '6px',
                 cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(224, 109, 126, 0.15)'
+                boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
               }}
             >
               <div style={{
-                width: '18px',
-                height: '18px',
+                width: '16px',
+                height: '16px',
                 borderRadius: '50%',
                 background: 'radial-gradient(circle, #333 30%, #111 70%, #d4a373 100%)',
                 animation: isPlayingMusic ? 'spinVinyl 3s linear infinite' : 'none',
@@ -201,105 +138,143 @@ export function LetterReaderModal({ letter, onClose }) {
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#fff' }} />
+                <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#fff' }} />
               </div>
               <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--rose-primary)' }}>
-                {isPlayingMusic ? 'Đang phát giai điệu thư 🎵' : '❚❚ Nhạc thư đã dừng'}
+                {isPlayingMusic ? 'Đang phát 🎵' : '❚❚ Dừng'}
               </span>
             </div>
           )}
+
+          {/* Scent Tag */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.88)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '16px',
+            padding: '4px 12px',
+            fontSize: '11px',
+            fontWeight: '700',
+            color: 'var(--rose-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+          }}>
+            <span>🌸</span>
+            <span>{scent}</span>
+          </div>
+
+          {/* Close Button */}
+          <button
+            onClick={() => {
+              setIsPlayingMusic(false);
+              onClose();
+            }}
+            style={{
+              background: 'rgba(255, 255, 255, 0.88)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '50%',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-light)',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+            }}
+            title="Đóng lá thư"
+          >
+            <X size={16} />
+          </button>
         </div>
 
-        {/* Wax Stamp Seal & Postage Stamp at Top Header */}
+        {/* Top Custom Wax Seal Header (Identical layout to Canvas preview!) */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
           gap: '14px',
-          marginBottom: '24px',
-          borderBottom: '1px dashed rgba(0,0,0,0.12)',
+          marginBottom: '22px',
+          borderBottom: '1px dashed var(--border-subtle)',
           paddingBottom: '16px',
           position: 'relative',
-          zIndex: 2
+          zIndex: 2,
+          paddingRight: '120px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div className={`wax-seal wax-seal-${waxColor}`} style={{ width: '52px', height: '52px', fontSize: '22px' }}>
-              {waxIcon}
-            </div>
-            <div>
-              {letter.mood_tag && !letter.title?.toLowerCase().includes(letter.mood_tag.toLowerCase().replace(/[\u{1F300}-\u{1FAFF}]/gu, '').trim()) && (
-                <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--rose-primary)', textTransform: 'uppercase' }}>
-                  {letter.mood_tag}
-                </div>
-              )}
-              <h2 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-ink)', letterSpacing: '-0.2px', marginTop: '2px' }}>
-                {letter.title}
-              </h2>
-              <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '12px' }}>
-                <span>Từ: <strong>{letter.sender_name}</strong></span>
-                <span>•</span>
-                <span>Ngày gửi: {new Date(letter.created_at).toLocaleDateString('vi-VN')}</span>
-              </div>
-            </div>
+          <div className={`wax-seal wax-seal-${waxColor}`} style={{ width: '50px', height: '50px', fontSize: '20px' }}>
+            {waxIcon}
           </div>
-
-          {/* Postage Stamp on Letter */}
-          <div style={{ flexShrink: 0, transform: 'rotate(3deg)' }}>
-            <PostageStamp
-              design={envCfg.stamp_design || 'rose'}
-              imageUrl={envCfg.stamp_image}
-              cost={letter.open_heart_cost}
-              size="sm"
-              showPostmark={true}
-              postmarkDate={letter.created_at}
-            />
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--rose-primary)', textTransform: 'uppercase' }}>
+              {letter.mood_tag || 'Thư Tình Yêu'}
+            </div>
+            <h2 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-ink)', marginTop: '2px', lineHeight: 1.25 }}>
+              {letter.title}
+            </h2>
+            <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <span>Từ: <strong>{letter.sender_name}</strong></span>
+              <span>•</span>
+              <span>Ngày gửi: {new Date(letter.created_at).toLocaleDateString('vi-VN')}</span>
+            </div>
           </div>
         </div>
 
-        {/* Decorative Stickers on Reader */}
+        {/* Decorative Stickers on Reader (Identical rendering & coordinate space to Canvas preview!) */}
         {letter.stickers && letter.stickers.map((stk) => (
-          <img
+          <div
             key={stk.id}
-            src={stk.url}
-            alt="sticker"
             style={{
               position: 'absolute',
               left: `${stk.x}%`,
               top: `${stk.y}%`,
-              width: '40px',
-              height: '40px',
               transform: `scale(${stk.scale || 1}) rotate(${stk.rotation || 0}deg)`,
+              transformOrigin: 'center center',
               pointerEvents: 'none',
-              filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.15))'
+              zIndex: 15
             }}
-          />
+          >
+            <img
+              src={stk.url}
+              alt="sticker"
+              draggable={false}
+              style={{
+                width: '46px',
+                height: '46px',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.18))'
+              }}
+            />
+          </div>
         ))}
 
         {/* Letter Text Content */}
         <div style={{
+          fontFamily: letter.font_family || "'Caveat', cursive, sans-serif",
+          color: letter.text_color || '#2b2621',
           fontSize: '18px',
-          lineHeight: '1.9',
-          color: letter.text_color || 'var(--text-ink)',
+          lineHeight: '1.85',
           whiteSpace: 'pre-wrap',
-          marginBottom: '28px',
-          fontFamily: letter.font_family || (letter.paper_style === 'kraft' ? 'Georgia, serif' : 'var(--font-main)')
+          minHeight: '120px',
+          marginBottom: '26px',
+          position: 'relative',
+          zIndex: 2
         }}>
           {letter.content}
         </div>
 
         {/* Polaroid Photos Attachment */}
         {letter.photos && letter.photos.length > 0 && (
-          <div style={{ marginTop: '26px', marginBottom: '24px', paddingTop: '16px', borderTop: '1px dashed rgba(0,0,0,0.1)' }}>
-            <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '14px' }}>
+          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px dashed rgba(0,0,0,0.1)', position: 'relative', zIndex: 2 }}>
+            <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '12px' }}>
               Ảnh kỷ niệm đính kèm:
             </div>
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
               {letter.photos.map((photoUrl, i) => (
-                <div key={i} className="polaroid" style={{ width: '180px', transform: `rotate(${i % 2 === 0 ? '-3deg' : '4deg'})` }}>
-                  <div className="washi-tape" style={{ width: '50px', height: '14px' }}></div>
-                  <img src={typeof photoUrl === 'string' ? photoUrl : photoUrl.url} alt="polaroid" className="polaroid-img" />
-                  <div className="polaroid-caption">
-                    {(typeof photoUrl === 'object' && photoUrl.caption) || 'Kỷ niệm của chúng mình ✨'}
+                <div key={i} className="polaroid" style={{ width: '140px', transform: `rotate(${i % 2 === 0 ? '-2.5deg' : '3deg'})` }}>
+                  <div className="washi-tape" style={{ width: '40px', height: '12px' }} />
+                  <img src={typeof photoUrl === 'string' ? photoUrl : photoUrl.url} alt="polaroid" className="polaroid-img" style={{ height: '100px' }} />
+                  <div className="polaroid-caption" style={{ fontSize: '12px' }}>
+                    {(typeof photoUrl === 'object' && photoUrl.caption) || 'Kỷ niệm ✨'}
                   </div>
                 </div>
               ))}

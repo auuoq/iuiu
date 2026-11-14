@@ -8,7 +8,7 @@ import { LetterWriterModal } from './components/LetterWriterModal.jsx';
 import { LetterUnlockModal } from './components/LetterUnlockModal.jsx';
 import { LetterReaderModal } from './components/LetterReaderModal.jsx';
 import { ScrapbookBoard } from './components/ScrapbookBoard.jsx';
-import { LovePlantWidget } from './components/LovePlantWidget.jsx';
+import { VintageMusicBox } from './components/VintageMusicBox.jsx';
 import { MilestoneBanner } from './components/MilestoneBanner.jsx';
 import { ProfileModal } from './components/ProfileModal.jsx';
 import { HeartMinerModal } from './components/HeartMinerModal.jsx';
@@ -97,7 +97,8 @@ export default function App() {
     if (!couple || !couple.id) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.hostname}:4000`;
+    const wsHost = window.location.port === '5173' ? `${window.location.hostname}:4000` : window.location.host;
+    const wsUrl = `${protocol}//${wsHost}`;
     
     try {
       const ws = new WebSocket(wsUrl);
@@ -269,6 +270,7 @@ export default function App() {
         walletBalance={walletBalance}
         daysTogether={daysTogether}
         onPoke={handlePoke}
+        onOpenGift={() => setShowGiftModal(true)}
         onOpenProfile={() => setShowProfileModal(true)}
         onOpenMiner={() => setShowHeartMiner(true)}
         onLogout={() => { setToken(null); setCurrentUser(null); setCouple(null); }}
@@ -286,7 +288,7 @@ export default function App() {
       ))}
 
       {/* Main Container */}
-      <main style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', padding: '24px 16px', flex: 1 }}>
+      <main className="app-main-content" style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', padding: '24px 16px', flex: 1 }}>
         {/* Milestone Banner (Active if today is anniversary or special holiday) */}
         <MilestoneBanner
           milestones={milestones}
@@ -303,125 +305,22 @@ export default function App() {
           }}
         />
 
-        {/* TẦNG 1: Bố Cục Thư & Tiện Ích Đôi (Cây Tình Yêu + Tặng Tim) */}
-        <div className="upper-layout-grid" style={{
-          marginBottom: '28px'
-        }}>
-          {/* Cột 1: Hòm Thư Tình Yêu */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <LetterList
-              letters={letters}
-              currentUserId={currentUser.id}
-              onSelectLetter={handleLetterSelect}
-              onOpenWriter={handleOpenWriter}
-              onEditLetter={handleEditLetter}
-              onDeleteLetter={handleDeleteLetter}
-              onSendDraft={handleSendDraft}
-            />
-          </div>
-
-          {/* Cột 2: Cây Tình Yêu Chung & Khung Tặng Tim (Xếp dọc cân đối chiều cao) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <LovePlantWidget
-              couple={couple}
-              onPlantWatered={(res) => {
-                setWalletBalance(res.balance);
-                setCouple(prev => ({ ...prev, plant_stage: res.plant_stage, plant_exp: res.plant_exp }));
-              }}
-            />
-
-            {/* Heart Gift Quick Box */}
-            <div style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: '20px',
-              padding: '22px 20px',
-              boxShadow: 'var(--shadow-warm)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              textAlign: 'center'
-            }}>
-              <div style={{ width: '48px', height: '48px', background: 'var(--rose-light)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
-                <Gift size={24} color="var(--rose-primary)" />
-              </div>
-              <h4 style={{ fontSize: '15px', fontWeight: '800' }}>Tặng Tim Cho {partner.display_name}</h4>
-              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '4px 0 16px 0', lineHeight: 1.45 }}>
-                Tặng tim để người ấy có thêm ngân sách bóc thư và mở quà bí mật
-              </p>
-              <button
-                onClick={() => setShowGiftModal(true)}
-                style={{
-                  background: 'var(--rose-primary)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '9px 20px',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: '0 4px 12px rgba(224, 109, 126, 0.25)',
-                  transition: 'transform 0.15s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              >
-                Gửi Quà Tặng ❤️
-              </button>
-            </div>
-
-            {/* Quick Heart Miner Arcade Banner */}
-            <div style={{
-              background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-              border: '1.5px solid #fde68a',
-              borderRadius: '20px',
-              padding: '16px 18px',
-              boxShadow: 'var(--shadow-warm)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '10px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ fontSize: '28px', userSelect: 'none' }}>⛏️</div>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#92400e' }}>
-                    Đào Tim Cổ Điển
-                  </div>
-                  <div style={{ fontSize: '11.5px', color: '#b45309' }}>
-                    Game Đào Vàng • Thưởng +1 ❤️ mỗi màn!
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowHeartMiner(true)}
-                style={{
-                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '8px 14px',
-                  fontSize: '12.5px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  boxShadow: '0 3px 10px rgba(245, 158, 11, 0.3)',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Chơi Ngay 🎮
-              </button>
-            </div>
-          </div>
+        {/* TẦNG 1: Góc Kỷ Niệm Của Hai Bạn (Ảnh Polaroid, Lời Nhắn Yêu) */}
+        <div style={{ width: '100%', marginBottom: '28px' }}>
+          <ScrapbookBoard coupleId={couple.id} currentUserId={currentUser.id} wsRef={wsRef} />
         </div>
 
-        {/* TẦNG 2: Góc Kỷ Niệm Của Hai Bạn (Rộng Toàn Bộ 1100px) */}
-        <div style={{ width: '100%', marginBottom: '24px' }}>
-          <ScrapbookBoard coupleId={couple.id} currentUserId={currentUser.id} wsRef={wsRef} />
+        {/* TẦNG 2: Hòm Thư Tình Yêu (Rộng Toàn Bộ 1100px, Gọn Gàng & Dễ Nhìn) */}
+        <div style={{ width: '100%', marginBottom: '28px' }}>
+          <LetterList
+            letters={letters}
+            currentUserId={currentUser.id}
+            onSelectLetter={handleLetterSelect}
+            onOpenWriter={handleOpenWriter}
+            onEditLetter={handleEditLetter}
+            onDeleteLetter={handleDeleteLetter}
+            onSendDraft={handleSendDraft}
+          />
         </div>
       </main>
 
@@ -556,6 +455,9 @@ export default function App() {
         walletBalance={walletBalance}
         onWalletUpdated={(newBal) => setWalletBalance(newBal)}
       />
+
+      {/* Vintage Antique Music Box (Docked at bottom, persistent background music including minigame) */}
+      <VintageMusicBox />
     </div>
   );
 }

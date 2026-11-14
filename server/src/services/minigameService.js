@@ -31,3 +31,4 @@ export function completeMinigame(userId, sessionId, levelsCompleted) {
 
   return { ok: true, heartsAwarded: count, newBalance };
 }
+

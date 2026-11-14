@@ -195,7 +195,7 @@ export function LetterList({ letters, onSelectLetter, onOpenWriter, onEditLetter
             }}
           >
             <Archive size={13} />
-            <span>Kho Lưu Trữ / Bản Nháp ({draftCount})</span>
+            <span>Bản nháp ({draftCount})</span>
           </button>
         )}
       </div>

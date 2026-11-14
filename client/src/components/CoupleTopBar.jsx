@@ -1,13 +1,12 @@
 import React from 'react';
-import { Heart, Sparkles, LogOut, Send, User, Settings } from 'lucide-react';
-import { AudioPlayer } from './AudioPlayer.jsx';
+import { Heart, Sparkles, LogOut, Send, User, Settings, Gift } from 'lucide-react';
 
-export function CoupleTopBar({ user, partner, couple, walletBalance, daysTogether, onPoke, onLogout, onOpenProfile, onOpenMiner }) {
+export function CoupleTopBar({ user, partner, couple, walletBalance, daysTogether, onPoke, onOpenGift, onLogout, onOpenProfile, onOpenMiner }) {
   const user1 = user;
   const user2 = partner || { display_name: 'Đang đợi người yêu...', avatar_url: null };
 
   return (
-    <header style={{
+    <header className="couple-topbar-header" style={{
       background: 'rgba(255, 253, 249, 0.85)',
       backdropFilter: 'blur(10px)',
       borderBottom: '1px solid var(--border-subtle)',
@@ -17,7 +16,7 @@ export function CoupleTopBar({ user, partner, couple, walletBalance, daysTogethe
       padding: '12px 24px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
     }}>
-      <div style={{
+      <div className="couple-topbar-wrapper" style={{
         maxWidth: '1100px',
         margin: '0 auto',
         display: 'flex',
@@ -27,7 +26,7 @@ export function CoupleTopBar({ user, partner, couple, walletBalance, daysTogethe
         gap: '14px'
       }}>
         {/* Left: Couple Identity */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div className="couple-topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
             {/* User Avatar (Clickable to edit profile) */}
             <div 
@@ -130,10 +129,8 @@ export function CoupleTopBar({ user, partner, couple, walletBalance, daysTogethe
           </div>
         </div>
 
-        {/* Right: Actions, Wallet & Audio */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <AudioPlayer />
-
+        {/* Right: Actions & Wallet */}
+        <div className="couple-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* Heart Miner Arcade Button */}
           {onOpenMiner && (
             <button
@@ -158,7 +155,7 @@ export function CoupleTopBar({ user, partner, couple, walletBalance, daysTogethe
               onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
               <span>⛏️ Đào Tim</span>
-              <span style={{ fontSize: '10px', background: '#b45309', color: '#fff', padding: '1px 5px', borderRadius: '8px' }}>
+              <span className="miner-hot-badge" style={{ fontSize: '10px', background: '#b45309', color: '#fff', padding: '1px 5px', borderRadius: '8px' }}>
                 HOT
               </span>
             </button>
@@ -181,6 +178,40 @@ export function CoupleTopBar({ user, partner, couple, walletBalance, daysTogethe
             <Heart size={15} fill="var(--rose-primary)" color="var(--rose-primary)" />
             <span>{walletBalance} Tim</span>
           </div>
+
+          {/* Gift Hearts Button */}
+          {partner && onOpenGift && (
+            <button
+              type="button"
+              onClick={onOpenGift}
+              title={`Tặng tim cho ${partner.display_name}`}
+              style={{
+                background: '#fff',
+                border: '1.5px solid var(--rose-border)',
+                color: 'var(--rose-primary)',
+                padding: '6px 13px',
+                borderRadius: '20px',
+                fontSize: '12.5px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(224, 109, 126, 0.1)',
+                transition: 'all 0.15s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.04)';
+                e.currentTarget.style.background = 'var(--rose-light)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.background = '#fff';
+              }}
+            >
+              <span>🎁 Tặng Tim</span>
+            </button>
+          )}
 
           {/* Edit Profile Button */}
           <button

@@ -397,6 +397,18 @@ export function createServerApp(dbPath = null) {
     res.json({ url: fileUrl });
   });
 
+  // Serve static client dist in production if built
+  const clientDist = path.resolve('client/dist');
+  if (fs.existsSync(clientDist)) {
+    app.use(express.static(clientDist));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+        return next();
+      }
+      res.sendFile(path.join(clientDist, 'index.html'));
+    });
+  }
+
   const server = http.createServer(app);
   initWebSocketServer(server);
 

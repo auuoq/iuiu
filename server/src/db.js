@@ -91,6 +91,8 @@ export function initDb(dbPath = null) {
       opened_at TEXT,
       status TEXT DEFAULT 'sent',
       milestone_id INTEGER,
+      font_family TEXT DEFAULT NULL,
+      text_color TEXT DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -111,6 +113,12 @@ export function initDb(dbPath = null) {
     }
     if (!cols.some(c => c.name === 'envelope_config')) {
       db.exec("ALTER TABLE letters ADD COLUMN envelope_config TEXT DEFAULT '{\"color\":\"dusty_rose\",\"stamp_design\":\"rose\",\"stamp_image\":null}'");
+    }
+    if (!cols.some(c => c.name === 'font_family')) {
+      db.exec("ALTER TABLE letters ADD COLUMN font_family TEXT DEFAULT NULL");
+    }
+    if (!cols.some(c => c.name === 'text_color')) {
+      db.exec("ALTER TABLE letters ADD COLUMN text_color TEXT DEFAULT NULL");
     }
 
     const userCols = db.prepare("PRAGMA table_info(users)").all();

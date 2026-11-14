@@ -45,7 +45,7 @@ export function LovePlantWidget({ couple, onPlantWatered }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
         <h3 style={{ fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span>Cây Tình Yêu Chung</span>
+          <span>Cây Tình Yêu</span>
           <span>🌱</span>
         </h3>
         <span style={{ fontSize: '12px', fontWeight: '700', background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: '10px' }}>
@@ -69,7 +69,7 @@ export function LovePlantWidget({ couple, onPlantWatered }) {
           {plantInfo.text}
         </div>
         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-          Tổng điểm chăm sóc: {exp} EXP
+          Điểm chăm sóc: {exp} EXP
         </div>
 
         {/* Progress Bar */}
@@ -90,7 +90,7 @@ export function LovePlantWidget({ couple, onPlantWatered }) {
           }}></div>
         </div>
         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-          {currentStageExp}/50 EXP lên cấp tiếp theo
+          {currentStageExp}/50 EXP
         </div>
       </div>
 
@@ -119,7 +119,7 @@ export function LovePlantWidget({ couple, onPlantWatered }) {
         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
       >
         <Droplet size={16} />
-        <span>{loading ? 'Đang tưới nước...' : 'Tưới Nước Cây Tình Yêu (+5 ❤️)'}</span>
+        <span>{loading ? 'Đang tưới...' : 'Tưới cây (+5 ❤️)'}</span>
       </button>
 
       {msg && (

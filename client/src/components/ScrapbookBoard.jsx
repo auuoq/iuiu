@@ -7,10 +7,7 @@ import {
   Edit3,
   Sparkles,
   Move,
-  ZoomIn,
-  ZoomOut,
   RotateCw,
-  RotateCcw,
   StickyNote,
   Palette,
   Check
@@ -73,7 +70,13 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
   const [uploading, setUploading] = useState(false);
   const [maxZ, setMaxZ] = useState(30);
   const [dragItem, setDragItem] = useState(null);
+  const [rotatingItem, setRotatingItem] = useState(null);
+  const [resizingItem, setResizingItem] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  const dragRef = useRef(null);
+  const rotatingRef = useRef(null);
+  const resizingRef = useRef(null);
 
   // Load from server on mount
   useEffect(() => {
@@ -131,7 +134,7 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
 
   // Pointer drag handling
   const handlePointerDown = (e, type, id, currentX, currentY) => {
-    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) return;
+    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea') || e.target.closest('[data-rotate-handle]') || e.target.closest('[data-resize-handle]')) return;
     e.stopPropagation();
 
     const nextZ = maxZ + 1;
@@ -146,14 +149,81 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
       setNotes(prev => prev.map(n => n.id === id ? { ...n, zIndex: nextZ } : n));
     }
 
-    setDragItem({
+    const dData = {
       type,
       id,
       startPointerX: e.clientX,
       startPointerY: e.clientY,
       origX: currentX,
       origY: currentY
-    });
+    };
+    dragRef.current = dData;
+    setDragItem(dData);
+
+    if (e.currentTarget.setPointerCapture) {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+  };
+
+  // Free interactive rotation pointer handling
+  const handleRotatePointerDown = (e, type, id) => {
+    e.stopPropagation();
+    const itemEl = e.currentTarget.closest('[data-scrapbook-item]');
+    if (!itemEl) return;
+
+    const rect = itemEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const rData = {
+      type,
+      id,
+      centerX,
+      centerY
+    };
+    rotatingRef.current = rData;
+    setRotatingItem(rData);
+
+    if (e.currentTarget.setPointerCapture) {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+  };
+
+  // Interactive corner/edge resize pointer handling
+  const handleResizePointerDown = (e, type, id, handleType) => {
+    e.stopPropagation();
+    const itemEl = e.currentTarget.closest('[data-scrapbook-item]');
+    if (!itemEl) return;
+
+    const rect = itemEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    let currentScale = 1;
+    if (type === 'photo') {
+      const it = photos.find(p => p.id === id);
+      if (it) currentScale = it.scale || 1;
+    } else if (type === 'sticker') {
+      const it = stickers.find(s => s.id === id);
+      if (it) currentScale = it.scale || 1;
+    } else if (type === 'note') {
+      const it = notes.find(n => n.id === id);
+      if (it) currentScale = it.scale || 1;
+    }
+
+    const startDist = Math.max(15, Math.hypot(e.clientX - centerX, e.clientY - centerY));
+
+    const resData = {
+      type,
+      id,
+      handleType,
+      centerX,
+      centerY,
+      startDist,
+      startScale: currentScale
+    };
+    resizingRef.current = resData;
+    setResizingItem(resData);
 
     if (e.currentTarget.setPointerCapture) {
       try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
@@ -161,30 +231,112 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
   };
 
   const handlePointerMove = (e) => {
-    if (!dragItem) return;
-    const dx = e.clientX - dragItem.startPointerX;
-    const dy = e.clientY - dragItem.startPointerY;
-    const newX = Math.max(5, dragItem.origX + dx);
-    const newY = Math.max(5, dragItem.origY + dy);
+    const resItem = resizingRef.current;
+    if (resItem) {
+      const currentDist = Math.hypot(e.clientX - resItem.centerX, e.clientY - resItem.centerY);
+      const ratio = currentDist / resItem.startDist;
+      let newScale = Number((resItem.startScale * ratio).toFixed(2));
+      newScale = Math.min(2.5, Math.max(0.4, newScale));
 
-    if (dragItem.type === 'photo') {
-      setPhotos(prev => prev.map(p => p.id === dragItem.id ? { ...p, x: newX, y: newY } : p));
-    } else if (dragItem.type === 'sticker') {
-      setStickers(prev => prev.map(s => s.id === dragItem.id ? { ...s, x: newX, y: newY } : s));
-    } else if (dragItem.type === 'note') {
-      setNotes(prev => prev.map(n => n.id === dragItem.id ? { ...n, x: newX, y: newY } : n));
+      if (resItem.type === 'photo') {
+        setPhotos(prev => prev.map(p => p.id === resItem.id ? { ...p, scale: newScale } : p));
+      } else if (resItem.type === 'sticker') {
+        setStickers(prev => prev.map(s => s.id === resItem.id ? { ...s, scale: newScale } : s));
+      } else if (resItem.type === 'note') {
+        setNotes(prev => prev.map(n => n.id === resItem.id ? { ...n, scale: newScale } : n));
+      }
+      return;
+    }
+
+    const rotItem = rotatingRef.current;
+    if (rotItem) {
+      const dx = e.clientX - rotItem.centerX;
+      const dy = e.clientY - rotItem.centerY;
+      let angle = Math.round((Math.atan2(dy, dx) * 180 / Math.PI) + 90);
+      if (angle > 180) angle -= 360;
+      if (angle < -180) angle += 360;
+
+      // Magnetic snap near straight angles
+      if (Math.abs(angle) <= 3) angle = 0;
+      else if (Math.abs(angle - 90) <= 2) angle = 90;
+      else if (Math.abs(angle + 90) <= 2) angle = -90;
+
+      if (rotItem.type === 'photo') {
+        setPhotos(prev => prev.map(p => p.id === rotItem.id ? { ...p, rotation: angle } : p));
+      } else if (rotItem.type === 'sticker') {
+        setStickers(prev => prev.map(s => s.id === rotItem.id ? { ...s, rotation: angle } : s));
+      } else if (rotItem.type === 'note') {
+        setNotes(prev => prev.map(n => n.id === rotItem.id ? { ...n, rotation: angle } : n));
+      }
+      return;
+    }
+
+    const dItem = dragRef.current;
+    if (!dItem) return;
+    const dx = e.clientX - dItem.startPointerX;
+    const dy = e.clientY - dItem.startPointerY;
+    const newX = Math.max(5, dItem.origX + dx);
+    const newY = Math.max(5, dItem.origY + dy);
+
+    if (dItem.type === 'photo') {
+      setPhotos(prev => prev.map(p => p.id === dItem.id ? { ...p, x: newX, y: newY } : p));
+    } else if (dItem.type === 'sticker') {
+      setStickers(prev => prev.map(s => s.id === dItem.id ? { ...s, x: newX, y: newY } : s));
+    } else if (dItem.type === 'note') {
+      setNotes(prev => prev.map(n => n.id === dItem.id ? { ...n, x: newX, y: newY } : n));
     }
   };
 
   const handlePointerUp = (e) => {
-    if (dragItem && e.currentTarget && e.currentTarget.releasePointerCapture) {
-      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+    let shouldSave = false;
+    if (resizingRef.current) {
+      if (e?.currentTarget && e.currentTarget.releasePointerCapture) {
+        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
+      resizingRef.current = null;
+      setResizingItem(null);
+      shouldSave = true;
     }
-    if (dragItem) {
+    if (rotatingRef.current) {
+      if (e?.currentTarget && e.currentTarget.releasePointerCapture) {
+        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
+      rotatingRef.current = null;
+      setRotatingItem(null);
+      shouldSave = true;
+    }
+    if (dragRef.current) {
+      if (e?.currentTarget && e.currentTarget.releasePointerCapture) {
+        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
+      dragRef.current = null;
+      setDragItem(null);
+      shouldSave = true;
+    }
+    if (shouldSave) {
       broadcastAndSave();
     }
-    setDragItem(null);
   };
+
+  // Window-level pointer tracking ensures smooth drags everywhere
+  useEffect(() => {
+    const onWinMove = (e) => {
+      if (resizingRef.current || rotatingRef.current || dragRef.current) {
+        handlePointerMove(e);
+      }
+    };
+    const onWinUp = (e) => {
+      if (resizingRef.current || rotatingRef.current || dragRef.current) {
+        handlePointerUp(e);
+      }
+    };
+    window.addEventListener('pointermove', onWinMove);
+    window.addEventListener('pointerup', onWinUp);
+    return () => {
+      window.removeEventListener('pointermove', onWinMove);
+      window.removeEventListener('pointerup', onWinUp);
+    };
+  }, []);
 
   // Upload Photo
   const handlePhotoUpload = async (e) => {
@@ -257,49 +409,262 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
     broadcastAndSave(undefined, updated, undefined);
   };
 
-  // Transform controls: Zoom, Rotate
-  const handleAdjustScale = (type, id, delta) => {
+  const handleSetRotation = (type, id, deg) => {
     if (type === 'photo') {
-      const updated = photos.map(p => {
-        if (p.id !== id) return p;
-        const newScale = Math.min(1.6, Math.max(0.65, Number(((p.scale || 1) + delta).toFixed(2))));
-        return { ...p, scale: newScale };
-      });
+      const updated = photos.map(p => p.id === id ? { ...p, rotation: deg } : p);
       setPhotos(updated);
       broadcastAndSave(updated, undefined, undefined);
     } else if (type === 'sticker') {
-      const updated = stickers.map(s => {
-        if (s.id !== id) return s;
-        const newScale = Math.min(1.8, Math.max(0.6, Number(((s.scale || 1) + delta).toFixed(2))));
-        return { ...s, scale: newScale };
-      });
+      const updated = stickers.map(s => s.id === id ? { ...s, rotation: deg } : s);
       setStickers(updated);
       broadcastAndSave(undefined, updated, undefined);
     } else if (type === 'note') {
-      const updated = notes.map(n => {
-        if (n.id !== id) return n;
-        const newScale = Math.min(1.6, Math.max(0.7, Number(((n.scale || 1) + delta).toFixed(2))));
-        return { ...n, scale: newScale };
-      });
+      const updated = notes.map(n => n.id === id ? { ...n, rotation: deg } : n);
       setNotes(updated);
       broadcastAndSave(undefined, undefined, updated);
     }
   };
 
-  const handleAdjustRotation = (type, id, deg) => {
-    if (type === 'photo') {
-      const updated = photos.map(p => p.id === id ? { ...p, rotation: ((p.rotation || 0) + deg) % 360 } : p);
-      setPhotos(updated);
-      broadcastAndSave(updated, undefined, undefined);
-    } else if (type === 'sticker') {
-      const updated = stickers.map(s => s.id === id ? { ...s, rotation: ((s.rotation || 0) + deg) % 360 } : s);
-      setStickers(updated);
-      broadcastAndSave(undefined, updated, undefined);
-    } else if (type === 'note') {
-      const updated = notes.map(n => n.id === id ? { ...n, rotation: ((n.rotation || 0) + deg) % 360 } : n);
-      setNotes(updated);
-      broadcastAndSave(undefined, undefined, updated);
-    }
+  // Reusable Corner & Edge Resize Handles
+  const renderResizeHandles = (type, id) => {
+    return (
+      <div
+        data-resize-handles-container="true"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 70
+        }}
+      >
+        {/* Corner Handles */}
+        {/* Top-Left */}
+        <div
+          data-resize-handle="tl"
+          onPointerDown={(e) => handleResizePointerDown(e, type, id, 'tl')}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          title="Kéo góc để phóng to / thu nhỏ"
+          style={{
+            position: 'absolute',
+            top: '-14px',
+            left: '-14px',
+            width: '28px',
+            height: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'nwse-resize',
+            pointerEvents: 'auto',
+            touchAction: 'none'
+          }}
+        >
+          <div style={{
+            width: '12px',
+            height: '12px',
+            borderRadius: '50%',
+            background: '#fff',
+            border: '2px solid var(--rose-primary)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
+          }} />
+        </div>
+
+        {/* Top-Right */}
+        <div
+          data-resize-handle="tr"
+          onPointerDown={(e) => handleResizePointerDown(e, type, id, 'tr')}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          title="Kéo góc để phóng to / thu nhỏ"
+          style={{
+            position: 'absolute',
+            top: '-14px',
+            right: '-14px',
+            width: '28px',
+            height: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'nesw-resize',
+            pointerEvents: 'auto',
+            touchAction: 'none'
+          }}
+        >
+          <div style={{
+            width: '12px',
+            height: '12px',
+            borderRadius: '50%',
+            background: '#fff',
+            border: '2px solid var(--rose-primary)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
+          }} />
+        </div>
+
+        {/* Bottom-Left */}
+        <div
+          data-resize-handle="bl"
+          onPointerDown={(e) => handleResizePointerDown(e, type, id, 'bl')}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          title="Kéo góc để phóng to / thu nhỏ"
+          style={{
+            position: 'absolute',
+            bottom: '-14px',
+            left: '-14px',
+            width: '28px',
+            height: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'nesw-resize',
+            pointerEvents: 'auto',
+            touchAction: 'none'
+          }}
+        >
+          <div style={{
+            width: '12px',
+            height: '12px',
+            borderRadius: '50%',
+            background: '#fff',
+            border: '2px solid var(--rose-primary)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
+          }} />
+        </div>
+
+        {/* Bottom-Right */}
+        <div
+          data-resize-handle="br"
+          onPointerDown={(e) => handleResizePointerDown(e, type, id, 'br')}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          title="Kéo góc để phóng to / thu nhỏ"
+          style={{
+            position: 'absolute',
+            bottom: '-14px',
+            right: '-14px',
+            width: '28px',
+            height: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'nwse-resize',
+            pointerEvents: 'auto',
+            touchAction: 'none'
+          }}
+        >
+          <div style={{
+            width: '12px',
+            height: '12px',
+            borderRadius: '50%',
+            background: '#fff',
+            border: '2px solid var(--rose-primary)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
+          }} />
+        </div>
+
+        {/* Edge Handles */}
+        {/* Left Edge */}
+        <div
+          data-resize-handle="edge-left"
+          onPointerDown={(e) => handleResizePointerDown(e, type, id, 'edge-left')}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          title="Kéo cạnh để chỉnh kích cỡ"
+          style={{
+            position: 'absolute',
+            top: 'calc(50% - 14px)',
+            left: '-14px',
+            width: '28px',
+            height: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'ew-resize',
+            pointerEvents: 'auto',
+            touchAction: 'none'
+          }}
+        >
+          <div style={{
+            width: '5px',
+            height: '16px',
+            borderRadius: '3px',
+            background: '#fff',
+            border: '2px solid var(--rose-primary)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+          }} />
+        </div>
+
+        {/* Right Edge */}
+        <div
+          data-resize-handle="edge-right"
+          onPointerDown={(e) => handleResizePointerDown(e, type, id, 'edge-right')}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          title="Kéo cạnh để chỉnh kích cỡ"
+          style={{
+            position: 'absolute',
+            top: 'calc(50% - 14px)',
+            right: '-14px',
+            width: '28px',
+            height: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'ew-resize',
+            pointerEvents: 'auto',
+            touchAction: 'none'
+          }}
+        >
+          <div style={{
+            width: '5px',
+            height: '16px',
+            borderRadius: '3px',
+            background: '#fff',
+            border: '2px solid var(--rose-primary)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+          }} />
+        </div>
+
+        {/* Bottom Edge */}
+        <div
+          data-resize-handle="edge-bottom"
+          onPointerDown={(e) => handleResizePointerDown(e, type, id, 'edge-bottom')}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          title="Kéo cạnh để chỉnh kích cỡ"
+          style={{
+            position: 'absolute',
+            bottom: '-14px',
+            left: 'calc(50% - 14px)',
+            width: '28px',
+            height: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'ns-resize',
+            pointerEvents: 'auto',
+            touchAction: 'none'
+          }}
+        >
+          <div style={{
+            width: '16px',
+            height: '5px',
+            borderRadius: '3px',
+            background: '#fff',
+            border: '2px solid var(--rose-primary)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+          }} />
+        </div>
+      </div>
+    );
   };
 
   // Edit Caption & Text Color
@@ -466,38 +831,19 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
           touchAction: 'none'
         }}
       >
-        {/* Helper instruction badge */}
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          left: '12px',
-          background: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(4px)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '20px',
-          padding: '4px 12px',
-          fontSize: '11px',
-          color: 'var(--text-muted)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '5px',
-          pointerEvents: 'none',
-          zIndex: 1
-        }}>
-          <Move size={11} color="var(--rose-primary)" />
-          <span>Kéo thả để di chuyển • Chọn ảnh/note để phóng to, xoay nghiêng hoặc đổi màu</span>
-        </div>
-
         {/* 1. STICKERS */}
         {stickers.map(stk => {
           const isSelected = selectedItemId?.type === 'sticker' && selectedItemId?.id === stk.id;
           const isDraggingThis = dragItem?.id === stk.id;
+          const isRotatingThis = rotatingItem?.id === stk.id;
+          const isResizingThis = resizingItem?.id === stk.id;
           const scale = stk.scale || 1;
           const rot = stk.rotation || 0;
 
           return (
             <div
               key={stk.id}
+              data-scrapbook-item="sticker"
               onClick={(e) => { e.stopPropagation(); setSelectedItemId({ type: 'sticker', id: stk.id }); }}
               onPointerDown={(e) => handlePointerDown(e, 'sticker', stk.id, stk.x, stk.y)}
               onPointerMove={handlePointerMove}
@@ -507,14 +853,88 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
                 position: 'absolute',
                 left: `${stk.x}px`,
                 top: `${stk.y}px`,
-                zIndex: stk.zIndex || 10,
-                cursor: isDraggingThis ? 'grabbing' : 'grab',
-                transform: `scale(${isDraggingThis ? scale * 1.1 : scale}) rotate(${rot}deg)`,
-                transition: isDraggingThis ? 'none' : 'transform 0.15s ease',
+                zIndex: isSelected ? Math.max(stk.zIndex || 10, maxZ + 2) : (stk.zIndex || 10),
+                cursor: isDraggingThis ? 'grabbing' : (isRotatingThis ? 'crosshair' : (isResizingThis ? 'nwse-resize' : 'grab')),
+                transform: `scale(${isDraggingThis ? scale * 1.05 : scale}) rotate(${rot}deg)`,
+                transition: (isDraggingThis || isRotatingThis || isResizingThis) ? 'none' : 'transform 0.15s ease',
                 touchAction: 'none'
               }}
             >
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', width: '48px', height: '48px' }}>
+                {/* Free Rotate Handle on Top */}
+                {isSelected && (
+                  <div
+                    data-rotate-handle="true"
+                    onPointerDown={(e) => handleRotatePointerDown(e, 'sticker', stk.id)}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      handleSetRotation('sticker', stk.id, 0);
+                    }}
+                    title="Kéo để xoay tự do • Nháy đúp để đặt thẳng (0°)"
+                    style={{
+                      position: 'absolute',
+                      top: '-36px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      cursor: 'grab',
+                      touchAction: 'none',
+                      zIndex: 75
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <div
+                        style={{
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '50%',
+                          background: '#fff',
+                          border: '2px solid var(--rose-primary)',
+                          boxShadow: '0 2px 8px rgba(224, 109, 126, 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--rose-primary)'
+                        }}
+                      >
+                        <RotateCw size={11} />
+                      </div>
+
+                      {Math.abs(rot) > 0 && (
+                        <button
+                          type="button"
+                          title="Đặt thẳng lại (0°)"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSetRotation('sticker', stk.id, 0);
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          style={{
+                            background: 'var(--rose-primary)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '10px',
+                            padding: '1px 5px',
+                            fontSize: '9px',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 6px rgba(224, 109, 126, 0.4)',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {rot}° ↺
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ width: '2px', height: '8px', background: 'var(--rose-primary)' }} />
+                  </div>
+                )}
+
                 <img
                   src={stk.url}
                   alt="sticker"
@@ -528,61 +948,52 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
                   }}
                 />
 
-                {/* Sticker floating toolbar when selected */}
+                {/* Sticker Selection Outline */}
                 {isSelected && (
                   <div
-                    onClick={(e) => e.stopPropagation()}
                     style={{
                       position: 'absolute',
-                      top: '-36px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      background: 'rgba(255,255,255,0.95)',
-                      backdropFilter: 'blur(4px)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: '16px',
-                      padding: '3px 6px',
+                      inset: '-4px',
+                      border: '1.5px dashed var(--rose-primary)',
+                      borderRadius: '8px',
+                      pointerEvents: 'none'
+                    }}
+                  />
+                )}
+
+                {/* Quick Delete button at Top-Right */}
+                {isSelected && (
+                  <button
+                    type="button"
+                    title="Xóa sticker"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSticker(stk.id);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '-10px',
+                      right: '-10px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      background: '#fee2e2',
+                      border: '1.5px solid #ef4444',
+                      color: '#ef4444',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-                      zIndex: 100
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                      zIndex: 80
                     }}
                   >
-                    <button
-                      type="button"
-                      title="Thu nhỏ"
-                      onClick={() => handleAdjustScale('sticker', stk.id, -0.15)}
-                      style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer', fontSize: '11px', fontWeight: '800' }}
-                    >
-                      <ZoomOut size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Phóng to"
-                      onClick={() => handleAdjustScale('sticker', stk.id, 0.15)}
-                      style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer', fontSize: '11px', fontWeight: '800' }}
-                    >
-                      <ZoomIn size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Xoay nghiêng"
-                      onClick={() => handleAdjustRotation('sticker', stk.id, 12)}
-                      style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer', color: 'var(--text-ink)' }}
-                    >
-                      <RotateCw size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Xóa sticker"
-                      onClick={() => handleDeleteSticker(stk.id)}
-                      style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer', color: '#c94a5a' }}
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
+                    <Trash2 size={10} />
+                  </button>
                 )}
+
+                {/* Corner & Edge Resize Handles */}
+                {isSelected && renderResizeHandles('sticker', stk.id)}
               </div>
             </div>
           );
@@ -592,12 +1003,15 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
         {notes.map(note => {
           const isSelected = selectedItemId?.type === 'note' && selectedItemId?.id === note.id;
           const isDraggingThis = dragItem?.id === note.id;
+          const isRotatingThis = rotatingItem?.id === note.id;
+          const isResizingThis = resizingItem?.id === note.id;
           const scale = note.scale || 1;
           const rot = note.rotation || 0;
 
           return (
             <div
               key={note.id}
+              data-scrapbook-item="note"
               onClick={(e) => { e.stopPropagation(); setSelectedItemId({ type: 'note', id: note.id }); }}
               onPointerDown={(e) => handlePointerDown(e, 'note', note.id, note.x, note.y)}
               onPointerMove={handlePointerMove}
@@ -607,14 +1021,88 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
               style={{
                 left: `${note.x}px`,
                 top: `${note.y}px`,
-                zIndex: note.zIndex || 5,
+                zIndex: isSelected ? Math.max(note.zIndex || 5, maxZ + 2) : (note.zIndex || 5),
                 width: '185px',
-                cursor: isDraggingThis ? 'grabbing' : 'grab',
+                cursor: isDraggingThis ? 'grabbing' : (isRotatingThis ? 'crosshair' : (isResizingThis ? 'nwse-resize' : 'grab')),
                 transform: `scale(${isDraggingThis ? scale * 1.05 : scale}) rotate(${rot}deg)`,
-                transition: isDraggingThis ? 'none' : 'transform 0.15s ease',
+                transition: (isDraggingThis || isRotatingThis || isResizingThis) ? 'none' : 'transform 0.15s ease',
                 touchAction: 'none'
               }}
             >
+              {/* Free Rotate Handle on Top */}
+              {isSelected && (
+                <div
+                  data-rotate-handle="true"
+                  onPointerDown={(e) => handleRotatePointerDown(e, 'note', note.id)}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    handleSetRotation('note', note.id, 0);
+                  }}
+                  title="Kéo để xoay tự do • Nháy đúp để đặt thẳng (0°)"
+                  style={{
+                    position: 'absolute',
+                    top: '-36px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    cursor: 'grab',
+                    touchAction: 'none',
+                    zIndex: 75
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        background: '#fff',
+                        border: '2px solid var(--rose-primary)',
+                        boxShadow: '0 2px 8px rgba(224, 109, 126, 0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--rose-primary)'
+                      }}
+                    >
+                      <RotateCw size={12} />
+                    </div>
+
+                    {Math.abs(rot) > 0 && (
+                      <button
+                        type="button"
+                        title="Đặt thẳng lại (0°)"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetRotation('note', note.id, 0);
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        style={{
+                          background: 'var(--rose-primary)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '2px 6px',
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 6px rgba(224, 109, 126, 0.4)',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {rot}° ↺
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ width: '2px', height: '10px', background: 'var(--rose-primary)' }} />
+                </div>
+              )}
+
               {/* Tape sticker at top of note */}
               <div
                 className="washi-tape"
@@ -647,7 +1135,7 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
                 }}
               />
 
-              {/* Sticky Note Controls when Selected */}
+              {/* Sticky Note Controls ONLY when Selected */}
               {isSelected && (
                 <div
                   onClick={(e) => e.stopPropagation()}
@@ -679,43 +1167,20 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
                     ))}
                   </div>
 
-                  {/* Actions */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <button
-                      type="button"
-                      title="Thu nhỏ"
-                      onClick={() => handleAdjustScale('note', note.id, -0.1)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
-                    >
-                      <ZoomOut size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Phóng to"
-                      onClick={() => handleAdjustScale('note', note.id, 0.1)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
-                    >
-                      <ZoomIn size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Xoay nghiêng"
-                      onClick={() => handleAdjustRotation('note', note.id, 5)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
-                    >
-                      <RotateCw size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Xóa giấy nhớ"
-                      onClick={() => handleDeleteNote(note.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c94a5a' }}
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
+                  {/* Clean Delete Button */}
+                  <button
+                    type="button"
+                    title="Xóa giấy nhớ"
+                    onClick={() => handleDeleteNote(note.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c94a5a', padding: '1px 3px' }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               )}
+
+              {/* Corner & Edge Resize Handles */}
+              {isSelected && renderResizeHandles('note', note.id)}
             </div>
           );
         })}
@@ -724,12 +1189,15 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
         {photos.map(photo => {
           const isSelected = selectedItemId?.type === 'photo' && selectedItemId?.id === photo.id;
           const isDraggingThis = dragItem?.id === photo.id;
+          const isRotatingThis = rotatingItem?.id === photo.id;
+          const isResizingThis = resizingItem?.id === photo.id;
           const scale = photo.scale || 1;
           const rot = photo.rotation || 0;
 
           return (
             <div
               key={photo.id}
+              data-scrapbook-item="photo"
               onClick={(e) => { e.stopPropagation(); setSelectedItemId({ type: 'photo', id: photo.id }); }}
               onPointerDown={(e) => handlePointerDown(e, 'photo', photo.id, photo.x, photo.y)}
               onPointerMove={handlePointerMove}
@@ -739,20 +1207,97 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
                 position: 'absolute',
                 left: `${photo.x}px`,
                 top: `${photo.y}px`,
-                zIndex: photo.zIndex || 2,
-                cursor: isDraggingThis ? 'grabbing' : 'grab',
+                zIndex: isSelected ? Math.max(photo.zIndex || 2, maxZ + 2) : (photo.zIndex || 2),
+                cursor: isDraggingThis ? 'grabbing' : (isRotatingThis ? 'crosshair' : (isResizingThis ? 'nwse-resize' : 'grab')),
                 transform: `scale(${isDraggingThis ? scale * 1.04 : scale}) rotate(${rot}deg)`,
-                transition: isDraggingThis ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.15s',
+                transition: (isDraggingThis || isRotatingThis || isResizingThis) ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.15s',
                 touchAction: 'none'
               }}
             >
+              {/* Free Rotate Handle on Top (Visible ONLY when Selected) */}
+              {isSelected && (
+                <div
+                  data-rotate-handle="true"
+                  onPointerDown={(e) => handleRotatePointerDown(e, 'photo', photo.id)}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    handleSetRotation('photo', photo.id, 0);
+                  }}
+                  title="Kéo để xoay tự do • Nháy đúp để đặt thẳng (0°)"
+                  style={{
+                    position: 'absolute',
+                    top: '-36px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    cursor: 'grab',
+                    touchAction: 'none',
+                    zIndex: 75
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '50%',
+                        background: '#fff',
+                        border: '2px solid var(--rose-primary)',
+                        boxShadow: '0 2px 10px rgba(224, 109, 126, 0.45)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--rose-primary)',
+                        transition: 'transform 0.1s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.15)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                      <RotateCw size={13} />
+                    </div>
+
+                    {Math.abs(rot) > 0 && (
+                      <button
+                        type="button"
+                        title="Đặt ảnh thẳng lại (0°)"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetRotation('photo', photo.id, 0);
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        style={{
+                          background: 'var(--rose-primary)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '2px 6px',
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 6px rgba(224, 109, 126, 0.4)',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {rot}° ↺
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ width: '2px', height: '8px', background: 'var(--rose-primary)' }} />
+                </div>
+              )}
+
               <div
                 className="polaroid"
                 style={{
                   width: '185px',
                   margin: 0,
                   boxShadow: isDraggingThis ? '0 18px 35px rgba(0,0,0,0.25)' : (isSelected ? '0 10px 25px rgba(224, 109, 126, 0.35)' : 'var(--shadow-warm)'),
-                  border: isSelected ? '1px solid var(--rose-primary)' : 'none'
+                  border: isSelected ? '1.5px solid var(--rose-primary)' : '1px solid rgba(0,0,0,0.06)'
                 }}
               >
                 {/* Washi Tape at Top */}
@@ -789,135 +1334,109 @@ export function ScrapbookBoard({ coupleId, currentUserId, wsRef }) {
                   {photo.caption}
                 </div>
 
-                {/* Action Bar */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginTop: '6px',
-                  paddingTop: '6px',
-                  borderTop: '1px dashed #eee'
-                }}>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditCaption(photo.id);
-                    }}
-                    style={{
-                      background: '#f7efe2',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: '6px',
-                      padding: '3px 7px',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      color: 'var(--text-ink)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
-                    }}
-                  >
-                    <Edit3 size={11} /> Sửa chữ
-                  </button>
-
-                  {/* Quick Rotate & Scale & Delete */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <button
-                      type="button"
-                      title="Xoay nghiêng"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAdjustRotation('photo', photo.id, 5);
-                      }}
-                      style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer', color: 'var(--text-ink)' }}
-                    >
-                      <RotateCw size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Thu nhỏ"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAdjustScale('photo', photo.id, -0.1);
-                      }}
-                      style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer', color: 'var(--text-ink)' }}
-                    >
-                      <ZoomOut size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Phóng to"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAdjustScale('photo', photo.id, 0.1);
-                      }}
-                      style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer', color: 'var(--text-ink)' }}
-                    >
-                      <ZoomIn size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Xóa ảnh"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePhoto(photo.id);
-                      }}
-                      style={{
-                        background: '#fff0f3',
-                        border: '1px solid #ffd1dc',
-                        borderRadius: '6px',
-                        padding: '3px 6px',
-                        color: '#c94a5a',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <Trash2 size={11} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Extended Color Palette when Selected */}
+                {/* EDITING CONTROLS: ONLY VISIBLE WHEN SELECTED! */}
                 {isSelected && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
+                  <>
+                    {/* Action Bar */}
+                    <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
+                      justifyContent: 'space-between',
                       marginTop: '6px',
-                      paddingTop: '4px',
-                      borderTop: '1px dotted #ebdcd0'
-                    }}
-                  >
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Màu chữ:</span>
-                    {[
-                      { col: '#2b2621', label: 'Nâu đen' },
-                      { col: '#e06d7e', label: 'Hồng' },
-                      { col: '#1e3a8a', label: 'Xanh' },
-                      { col: '#8b1e2c', label: 'Đỏ rượu' }
-                    ].map(c => (
+                      paddingTop: '6px',
+                      borderTop: '1px dashed #eee'
+                    }}>
                       <button
-                        key={c.col}
                         type="button"
-                        onClick={() => handleChangePhotoColor(photo.id, c.col)}
-                        style={{
-                          width: '13px',
-                          height: '13px',
-                          borderRadius: '50%',
-                          background: c.col,
-                          border: photo.textColor === c.col ? '2px solid #fff' : 'none',
-                          boxShadow: photo.textColor === c.col ? '0 0 0 1px #000' : 'none',
-                          cursor: 'pointer'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditCaption(photo.id);
                         }}
-                      />
-                    ))}
-                  </div>
+                        style={{
+                          background: '#f7efe2',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '6px',
+                          padding: '3px 8px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          color: 'var(--text-ink)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                      >
+                        <Edit3 size={11} /> Sửa chữ
+                      </button>
+
+                      {/* Clean Delete Button */}
+                      <button
+                        type="button"
+                        title="Xóa ảnh"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePhoto(photo.id);
+                        }}
+                        style={{
+                          background: '#fff0f3',
+                          border: '1px solid #ffd1dc',
+                          borderRadius: '6px',
+                          padding: '3px 8px',
+                          color: '#c94a5a',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          fontSize: '11px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        <Trash2 size={11} /> Xóa
+                      </button>
+                    </div>
+
+                    {/* Extended Color Palette */}
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        marginTop: '6px',
+                        paddingTop: '4px',
+                        borderTop: '1px dotted #ebdcd0'
+                      }}
+                    >
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Màu chữ:</span>
+                      {[
+                        { col: '#2b2621', label: 'Nâu đen' },
+                        { col: '#e06d7e', label: 'Hồng' },
+                        { col: '#1e3a8a', label: 'Xanh' },
+                        { col: '#8b1e2c', label: 'Đỏ rượu' }
+                      ].map(c => (
+                        <button
+                          key={c.col}
+                          type="button"
+                          onClick={() => handleChangePhotoColor(photo.id, c.col)}
+                          style={{
+                            width: '13px',
+                            height: '13px',
+                            borderRadius: '50%',
+                            background: c.col,
+                            border: photo.textColor === c.col ? '2px solid #fff' : 'none',
+                            boxShadow: photo.textColor === c.col ? '0 0 0 1.5px var(--rose-primary)' : 'none',
+                            cursor: 'pointer'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
+
+              {/* Corner & Edge Resize Handles */}
+              {isSelected && renderResizeHandles('photo', photo.id)}
             </div>
           );
         })}

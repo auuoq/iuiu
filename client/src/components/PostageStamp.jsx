@@ -52,7 +52,7 @@ export function PostageStamp({
         height: sizeStyles.height,
         ...style
       }}
-      title={`Tem thư: ${currentStamp.name} (${cost} ❤️)`}
+      title={`Tem thư: ${currentStamp.name}`}
     >
       <div className="postage-stamp-inner">
         {isCustomPhoto ? (
@@ -79,7 +79,7 @@ export function PostageStamp({
           className="postage-stamp-denomination"
           style={{ fontSize: sizeStyles.fontSize }}
         >
-          {cost} ❤️ LOVE
+          ★ LOVE POST ★
         </div>
       </div>
 

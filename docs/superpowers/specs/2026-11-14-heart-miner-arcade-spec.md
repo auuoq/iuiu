@@ -115,3 +115,4 @@ No schema migration required; `users.wallet_balance` and `transactions` tables a
 - Reaching target score opens the Intermission Shop; purchased items work in Level 2.
 - Ending game grants 1 Heart per completed level into the user's wallet.
 - All server tests pass, client builds cleanly.
+
