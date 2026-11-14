@@ -119,7 +119,15 @@ export function checkUpcomingMilestones(coupleId, targetDateStr = null, user1 = 
     return m.event_date === monthDay || m.event_date === targetDateStr;
   }).map(m => {
     let mustWrite = true;
-    if (user1 && user2) {
+    if (couple && user1 && m.writer_rule) {
+      if (m.writer_rule === 'user1_only') {
+        mustWrite = user1.id === couple.user1_id;
+      } else if (m.writer_rule === 'user2_only') {
+        mustWrite = user1.id === couple.user2_id;
+      } else {
+        mustWrite = true;
+      }
+    } else if (user1 && user2) {
       const expected = getExpectedWriter(m.category, user1, user2);
       mustWrite = expected === 'both' || expected === user1.id;
     }

@@ -6,6 +6,7 @@ export function ProfileModal({ user, couple, onClose, onProfileUpdated }) {
   const [displayName, setDisplayName] = useState(user.display_name || '');
   const [gender, setGender] = useState(user.gender || 'other');
   const [avatarUrl, setAvatarUrl] = useState(user.avatar_url || '');
+  const [birthday, setBirthday] = useState(user.birthday || '');
   const [newPassword, setNewPassword] = useState('');
   const [anniversaryDate, setAnniversaryDate] = useState(couple?.anniversary_date || '2025-10-25');
   const [loading, setLoading] = useState(false);
@@ -43,6 +44,7 @@ export function ProfileModal({ user, couple, onClose, onProfileUpdated }) {
         display_name: displayName.trim(),
         gender,
         avatar_url: avatarUrl || null,
+        birthday: birthday || null,
         anniversary_date: anniversaryDate || null
       };
 
@@ -253,6 +255,29 @@ export function ProfileModal({ user, couple, onClose, onProfileUpdated }) {
               <option value="female">Nữ</option>
               <option value="other">Khác</option>
             </select>
+          </div>
+
+          {/* Ngày sinh nhật */}
+          <div>
+            <label style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+              🎂 Ngày sinh nhật của bạn:
+            </label>
+            <input
+              type="date"
+              value={birthday}
+              onChange={(e) => setBirthday(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '12px',
+                border: '1px solid var(--border-subtle)',
+                background: '#fff',
+                fontSize: '13.5px'
+              }}
+            />
+            <span style={{ fontSize: '11px', color: 'var(--text-light)', marginTop: '4px', display: 'block' }}>
+              Vào ngày này, ứng dụng sẽ có hiệu ứng bánh kem thổi nến và nhắc người ấy gửi thư bí mật cho bạn!
+            </span>
           </div>
 
           {/* Ngày kỷ niệm */}

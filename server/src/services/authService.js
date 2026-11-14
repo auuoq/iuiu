@@ -170,7 +170,7 @@ export function getCoupleInfo(userId) {
   const partnerId = couple.user1_id === userId ? couple.user2_id : couple.user1_id;
   let partner = null;
   if (partnerId) {
-    const partnerRow = db.prepare('SELECT id, username, display_name, gender, pronoun, avatar_url FROM users WHERE id = ?').get(partnerId);
+    const partnerRow = db.prepare('SELECT id, username, display_name, gender, pronoun, avatar_url, birthday FROM users WHERE id = ?').get(partnerId);
     partner = partnerRow;
   }
 
@@ -178,7 +178,7 @@ export function getCoupleInfo(userId) {
   return { user: safeUser, couple, partner };
 }
 
-export function updateProfile(userId, { display_name, gender, avatar_url, new_password, anniversary_date }) {
+export function updateProfile(userId, { display_name, gender, avatar_url, new_password, anniversary_date, birthday }) {
   const db = getDb();
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user) {
@@ -196,15 +196,39 @@ export function updateProfile(userId, { display_name, gender, avatar_url, new_pa
   const newDisplayName = display_name !== undefined && display_name.trim() ? display_name.trim() : user.display_name;
   const newGender = gender !== undefined ? gender : user.gender;
   const newAvatar = avatar_url !== undefined ? avatar_url : user.avatar_url;
+  const newBirthday = birthday !== undefined ? birthday : (user.birthday || null);
 
   db.prepare(`
     UPDATE users
-    SET display_name = ?, gender = ?, avatar_url = ?, password_hash = ?
+    SET display_name = ?, gender = ?, avatar_url = ?, birthday = ?, password_hash = ?
     WHERE id = ?
-  `).run(newDisplayName, newGender, newAvatar, passwordHash, userId);
+  `).run(newDisplayName, newGender, newAvatar, newBirthday, passwordHash, userId);
 
   if (anniversary_date && user.couple_id) {
     db.prepare('UPDATE couples SET anniversary_date = ? WHERE id = ?').run(anniversary_date, user.couple_id);
+  }
+
+  // If user has a couple and updated birthday, synchronize/upsert birthday milestone
+  if (newBirthday && user.couple_id) {
+    const couple = db.prepare('SELECT * FROM couples WHERE id = ?').get(user.couple_id);
+    if (couple) {
+      const monthDay = newBirthday.length >= 5 ? newBirthday.slice(-5) : newBirthday; // extracts MM-DD
+      const isUser1 = user.id === couple.user1_id;
+      const category = isUser1 ? 'birthday_user1' : 'birthday_user2';
+      const writer_rule = isUser1 ? 'user2_only' : 'user1_only';
+      const title = `Sinh Nhật ${newDisplayName} 🎂`;
+
+      const existingMilestone = db.prepare('SELECT id FROM milestones WHERE couple_id = ? AND category = ?').get(couple.id, category);
+      if (existingMilestone) {
+        db.prepare('UPDATE milestones SET title = ?, event_date = ?, writer_rule = ?, interactive_fx = ? WHERE id = ?')
+          .run(title, monthDay, writer_rule, 'candle_blow', existingMilestone.id);
+      } else {
+        db.prepare(`
+          INSERT INTO milestones (couple_id, title, event_date, category, writer_rule, interactive_fx)
+          VALUES (?, ?, ?, ?, ?, 'candle_blow')
+        `).run(couple.id, title, monthDay, category, writer_rule);
+      }
+    }
   }
 
   return getCoupleInfo(userId);

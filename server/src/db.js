@@ -1,12 +1,16 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let dbInstance = null;
 
 export function initDb(dbPath = null) {
   if (!dbPath) {
-    const dataDir = path.resolve('data');
+    const dataDir = path.resolve(__dirname, '../data');
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
@@ -107,6 +111,11 @@ export function initDb(dbPath = null) {
     }
     if (!cols.some(c => c.name === 'envelope_config')) {
       db.exec("ALTER TABLE letters ADD COLUMN envelope_config TEXT DEFAULT '{\"color\":\"dusty_rose\",\"stamp_design\":\"rose\",\"stamp_image\":null}'");
+    }
+
+    const userCols = db.prepare("PRAGMA table_info(users)").all();
+    if (!userCols.some(c => c.name === 'birthday')) {
+      db.exec("ALTER TABLE users ADD COLUMN birthday TEXT DEFAULT NULL");
     }
   } catch (e) {}
 
