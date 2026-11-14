@@ -6,7 +6,7 @@
     "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,magenta\" \"npm run server\" \"npm run client\"",
     "postinstall": "npm --prefix server install && npm --prefix client install",
     "build": "npm --prefix client run build",
-    "start": "node server/src/server.js",
+    "start": "node --experimental-sqlite server/src/server.js",
     "server": "npm --prefix server run dev",
     "client": "npm --prefix client run dev",
     "test": "npm --prefix server test",
