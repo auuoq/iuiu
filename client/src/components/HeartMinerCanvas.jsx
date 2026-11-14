@@ -82,11 +82,13 @@ export function HeartMinerCanvas({
     originX: 400,
     originY: 64,
     angle: 0,
-    angleDir: 1,
-    angleSpeed: 0.034,
+    swingPhase: 0,
+    swingSpeed: 0.022, // Smooth ~2.4s pendulum cycle
+    maxSwingAngle: 1.12, // ~64 degrees
+    shootAngle: 0,
     hookState: 'IDLE', // 'IDLE' | 'SHOOTING' | 'RETRACTING'
-    hookLength: 38,
-    hookSpeed: 10.0,
+    hookLength: 48,
+    hookSpeed: 9.0,
     caughtItem: null,
     // Entities
     items: [],
@@ -223,7 +225,7 @@ export function HeartMinerCanvas({
 
     stateRef.current.items = items;
     stateRef.current.hookState = 'IDLE';
-    stateRef.current.hookLength = 38;
+    stateRef.current.hookLength = 48;
     stateRef.current.caughtItem = null;
     stateRef.current.explosions = [];
   }, [hasDiamondPolish]);
@@ -237,6 +239,7 @@ export function HeartMinerCanvas({
     const s = stateRef.current;
     if (s.hookState === 'IDLE' && !isPaused) {
       s.hookState = 'SHOOTING';
+      s.shootAngle = s.angle;
       playShoot();
     }
   }, [isPaused]);
@@ -300,25 +303,19 @@ export function HeartMinerCanvas({
 
       // 1. UPDATE PHYSICS
       if (!isPaused) {
-        // A. Hook swinging
+        // A. Hook swinging (Smooth Harmonic Pendulum)
         if (s.hookState === 'IDLE') {
           s.minerAction = 'IDLE';
-          s.angle += s.angleSpeed * s.angleDir;
-          if (s.angle > 1.25) {
-            s.angle = 1.25;
-            s.angleDir = -1;
-          } else if (s.angle < -1.25) {
-            s.angle = -1.25;
-            s.angleDir = 1;
-          }
+          s.swingPhase += s.swingSpeed;
+          s.angle = Math.sin(s.swingPhase) * s.maxSwingAngle;
         }
 
         // B. Hook Shooting
         if (s.hookState === 'SHOOTING') {
           s.minerAction = 'IDLE';
           s.hookLength += s.hookSpeed;
-          const hookX = s.originX + Math.sin(s.angle) * s.hookLength;
-          const hookY = s.originY + Math.cos(s.angle) * s.hookLength;
+          const hookX = s.originX + Math.sin(s.shootAngle) * s.hookLength;
+          const hookY = s.originY + Math.cos(s.shootAngle) * s.hookLength;
 
           // Boundary checks
           if (hookX < 15 || hookX > 785 || hookY > 505) {
@@ -345,7 +342,7 @@ export function HeartMinerCanvas({
           let speed = 14.0;
           if (s.caughtItem) {
             const effectiveMass = Math.max(0.8, s.caughtItem.mass);
-            speed = 11.0 / effectiveMass;
+            speed = 10.5 / effectiveMass;
             if (hasPowerDrink) {
               speed *= 2.2;
             }
@@ -362,11 +359,14 @@ export function HeartMinerCanvas({
             playReelTick();
           }
 
-          if (s.hookLength <= 38) {
+          if (s.hookLength <= 48) {
             // Reached miner top deck
-            s.hookLength = 38;
+            s.hookLength = 48;
             s.hookState = 'IDLE';
             s.minerAction = 'IDLE';
+
+            // Smoothly resume swinging from current angle
+            s.swingPhase = Math.asin(Math.max(-0.99, Math.min(0.99, s.shootAngle / s.maxSwingAngle)));
 
             if (s.caughtItem) {
               const item = s.caughtItem;
@@ -415,9 +415,10 @@ export function HeartMinerCanvas({
         }
       }
 
-      // Calculate hook position
-      const hookX = s.originX + Math.sin(s.angle) * s.hookLength;
-      const hookY = s.originY + Math.cos(s.angle) * s.hookLength;
+      // Calculate current hook position
+      const currentAngle = s.hookState === 'IDLE' ? s.angle : s.shootAngle;
+      const hookX = s.originX + Math.sin(currentAngle) * s.hookLength;
+      const hookY = s.originY + Math.cos(currentAngle) * s.hookLength;
 
       if (s.caughtItem) {
         s.caughtItem.x = hookX;
@@ -451,7 +452,7 @@ export function HeartMinerCanvas({
 
       // D. Steel Cable
       ctx.strokeStyle = '#27272a';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.moveTo(s.originX, s.originY);
       ctx.lineTo(hookX, hookY);
@@ -468,23 +469,23 @@ export function HeartMinerCanvas({
       // E. Authentic Iron Hook
       ctx.save();
       ctx.translate(hookX, hookY);
-      ctx.rotate(s.angle);
+      ctx.rotate(currentAngle);
 
       if (assets.hook && assets.hook.complete) {
-        // Draw real iron claw hook
-        ctx.drawImage(assets.hook, -18, -6, 36, 30);
+        // Draw real iron claw hook attached cleanly at (hookX, hookY)
+        ctx.drawImage(assets.hook, -18, -2, 36, 30);
       } else {
         // Procedural hook
         ctx.fillStyle = '#475569';
-        ctx.fillRect(-4, -6, 8, 8);
+        ctx.fillRect(-3, 0, 6, 6);
         ctx.strokeStyle = '#1e293b';
-        ctx.lineWidth = 3.5;
+        ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(-3, 0);
-        ctx.quadraticCurveTo(-14, 12, -4, 18);
-        ctx.moveTo(3, 0);
-        ctx.quadraticCurveTo(14, 12, 4, 18);
+        ctx.moveTo(-2, 4);
+        ctx.quadraticCurveTo(-12, 14, -3, 20);
+        ctx.moveTo(2, 4);
+        ctx.quadraticCurveTo(12, 14, 3, 20);
         ctx.stroke();
       }
       ctx.restore();
