@@ -7,8 +7,9 @@ import multer from 'multer';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'node:url';
 
-import { initDb, getDb } from './db.js';
+import { initDb, getDb, getDefaultDbPath } from './db.js';
 import { initWebSocketServer, broadcastToCouple } from './websocket.js';
+import { restoreDatabaseFromCloud, startAutoBackupLoop } from './cloudBackup.js';
 import * as authService from './services/authService.js';
 import * as heartService from './services/heartService.js';
 import * as letterService from './services/letterService.js';
@@ -388,11 +389,20 @@ export function createServerApp(dbPath = null) {
     }
   });
 
-  // File Upload
+  // File Upload: Support both Base64 Data URL (for cloud persistence without disk) and local file fallback
   app.post('/api/upload', upload.single('file'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'Không tìm thấy file tải lên' });
     }
+    try {
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        const fileBuf = fs.readFileSync(req.file.path);
+        const mime = req.file.mimetype || 'image/jpeg';
+        const dataUrl = `data:${mime};base64,${fileBuf.toString('base64')}`;
+        return res.json({ url: dataUrl });
+      }
+    } catch (e) {}
+
     const fileUrl = `/uploads/${req.file.filename}`;
     res.json({ url: fileUrl });
   });
@@ -417,8 +427,14 @@ export function createServerApp(dbPath = null) {
 
 if (process.env.NODE_ENV !== 'test' && process.argv[1] && process.argv[1].endsWith('server.js')) {
   const PORT = process.env.PORT || 4000;
-  const server = createServerApp();
-  server.listen(PORT, () => {
-    console.log(`💌 LoveCapsule Backend running at http://localhost:${PORT}`);
+  const dbPath = getDefaultDbPath();
+
+  // Restore database from cloud before starting app
+  restoreDatabaseFromCloud(dbPath).finally(() => {
+    const server = createServerApp(dbPath);
+    startAutoBackupLoop(dbPath, 15000);
+    server.listen(PORT, () => {
+      console.log(`💌 LoveCapsule Backend running at http://localhost:${PORT}`);
+    });
   });
 }

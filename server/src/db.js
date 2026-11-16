@@ -8,13 +8,17 @@ const __dirname = path.dirname(__filename);
 
 let dbInstance = null;
 
+export function getDefaultDbPath() {
+  const dataDir = path.resolve(__dirname, '../data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  return path.join(dataDir, 'lovecapsule.db');
+}
+
 export function initDb(dbPath = null) {
   if (!dbPath) {
-    const dataDir = path.resolve(__dirname, '../data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    dbPath = path.join(dataDir, 'lovecapsule.db');
+    dbPath = getDefaultDbPath();
   }
 
   const db = new DatabaseSync(dbPath);
