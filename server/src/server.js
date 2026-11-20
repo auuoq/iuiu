@@ -33,7 +33,10 @@ const storage = multer.diskStorage({
     cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
   }
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }
+});
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -57,7 +60,8 @@ export function createServerApp(dbPath = null) {
 
   const app = express();
   app.use(cors());
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use('/uploads', express.static(uploadsDir));
 
   // Health

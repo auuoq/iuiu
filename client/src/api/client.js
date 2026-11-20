@@ -38,6 +38,65 @@ async function request(endpoint, options = {}) {
   return data;
 }
 
+// Tối ưu và nén ảnh phía client trước khi upload (giảm dung lượng ảnh camera 10MB xuống ~150KB)
+async function compressImageIfNeeded(file) {
+  if (!file || !file.type || !file.type.startsWith('image/')) return file;
+  if (file.type === 'image/gif') return file; // Giữ nguyên ảnh động GIF
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX_SIZE = 1200;
+      let { width, height } = img;
+
+      if (width <= MAX_SIZE && height <= MAX_SIZE && file.size < 250 * 1024) {
+        return resolve(file);
+      }
+
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height = Math.round((height * MAX_SIZE) / width);
+          width = MAX_SIZE;
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width = Math.round((width * MAX_SIZE) / height);
+          height = MAX_SIZE;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const isPng = file.type === 'image/png';
+      const outputType = isPng ? 'image/png' : 'image/jpeg';
+      const quality = isPng ? undefined : 0.82;
+
+      canvas.toBlob((blob) => {
+        if (blob && blob.size < file.size) {
+          const optimizedFile = new File([blob], file.name.replace(/\.[^.]+$/, isPng ? '.png' : '.jpg'), {
+            type: outputType,
+            lastModified: Date.now()
+          });
+          resolve(optimizedFile);
+        } else {
+          resolve(file);
+        }
+      }, outputType, quality);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+    img.src = objectUrl;
+  });
+}
+
 export const api = {
   // Auth
   register: (body) => request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
@@ -78,8 +137,9 @@ export const api = {
 
   // Upload real photo or sticker
   uploadFile: async (file) => {
+    const compressed = await compressImageIfNeeded(file).catch(() => file);
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', compressed);
     return request('/upload', { method: 'POST', body: formData });
   },
 

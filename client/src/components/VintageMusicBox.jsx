@@ -17,6 +17,7 @@ import {
 export function extractYouTubeId(url) {
   if (!url || typeof url !== 'string') return null;
   const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+
   return match ? match[1] : null;
 }
 

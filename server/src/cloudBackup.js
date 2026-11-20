@@ -148,3 +148,4 @@ export function startAutoBackupLoop(dbFilePath, intervalMs = 15000) {
   process.on('SIGTERM', cleanup);
   process.on('SIGINT', cleanup);
 }
+
